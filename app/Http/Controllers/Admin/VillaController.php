@@ -11,7 +11,7 @@ class VillaController extends Controller
 {
     public function index()
     {
-        $villas = Villa::latest()->paginate(10);
+        $villas = Villa::with('images')->latest()->paginate(10);
         return view("admin.villas.index", compact("villas"));
     }
     
@@ -31,11 +31,16 @@ class VillaController extends Controller
             "bathrooms" => "required|integer|min:1",
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
+            "amenities" => "nullable|array",
+            "amenities.*" => "string|max:100",
             "images.*" => "nullable|image|mimes:jpeg,png,jpg|max:2048",
         ]);
         
-        $villa = Villa::create($request->except("images", "is_featured") + [
+        $amenities = $request->amenities ? array_filter(array_map('trim', $request->amenities)) : null;
+
+        $villa = Villa::create($request->except("images", "is_featured", "amenities") + [
             "is_featured" => $request->has("is_featured"),
+            "amenities" => $amenities ? json_encode($amenities) : null,
         ]);
         
         if ($request->hasFile("images")) {
@@ -54,6 +59,7 @@ class VillaController extends Controller
     
     public function edit(Villa $villa)
     {
+        $villa->load('images');
         return view("admin.villas.edit", compact("villa"));
     }
     
@@ -68,11 +74,16 @@ class VillaController extends Controller
             "bathrooms" => "required|integer|min:1",
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
+            "amenities" => "nullable|array",
+            "amenities.*" => "string|max:100",
             "images.*" => "nullable|image|mimes:jpeg,png,jpg|max:2048",
         ]);
+
+        $amenities = $request->amenities ? array_filter(array_map('trim', $request->amenities)) : null;
         
-        $villa->update($request->except("images", "is_featured") + [
+        $villa->update($request->except("images", "is_featured", "amenities") + [
             "is_featured" => $request->has("is_featured"),
+            "amenities" => $amenities,
         ]);
         
         if ($request->hasFile("images")) {
@@ -91,6 +102,18 @@ class VillaController extends Controller
     
     public function destroy(Villa $villa)
     {
+        // Check if villa has any bookings
+        if ($villa->bookings()->count() > 0) {
+            return redirect()->route('admin.villas.index')
+                ->with('error', 'Villa tidak dapat dihapus karena masih memiliki pemesanan.');
+        }
+
+        // Delete associated images from storage
+        foreach ($villa->images as $image) {
+            Storage::disk('public')->delete($image->image_path);
+            $image->delete();
+        }
+        
         $villa->delete();
         return redirect()->route("admin.villas.index")->with("success", "Villa berhasil dihapus!");
     }

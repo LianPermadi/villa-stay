@@ -19,6 +19,7 @@ class Villa extends Model
         'area',
         'status',
         'is_featured',
+        'amenities',
     ];
 
     protected $casts = [

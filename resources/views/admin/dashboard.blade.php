@@ -68,77 +68,6 @@
                 </div>
             </div>
         </div>
-            
-            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-secondary">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Total Pemesanan</p>
-                        <p class="text-3xl font-bold text-secondary">{{ $totalBookings }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-accent">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Total Pendapatan</p>
-                        <p class="text-3xl font-bold text-accent">Rp {{ number_format($totalRevenue, 0, ",", ".") }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Aktif / Siap Booking</p>
-                        <p class="text-3xl font-bold text-green-600">{{ $villaStats['available'] ?? 0 }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-yellow-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Tidak Aktif</p>
-                        <p class="text-3xl font-bold text-yellow-600">{{ $villaStats['unavailable'] ?? 0 }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Renovasi / Maintenance</p>
-                        <p class="text-3xl font-bold text-red-600">{{ $villaStats['maintenance'] ?? 0 }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
         
         <!-- Recent Villas -->
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -155,7 +84,7 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($recentVillas as $villa)
                 <div class="border rounded-xl overflow-hidden hover:shadow-lg transition">
-                    <div class="h-32 relative bg-gray-100">
+                    <div class="h-24 relative bg-gray-100">
                         @php
                             $primaryImage = $villa->images->where('is_primary', true)->first();
                         @endphp
@@ -163,7 +92,7 @@
                             <img src="{{ asset('storage/' . $primaryImage->image_path) }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
                         @else
                             <div class="w-full h-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                                <svg class="w-10 h-10 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-8 h-8 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                 </svg>
                             </div>
@@ -172,7 +101,7 @@
                             {{ $villa->status === 'available' ? 'badge-available' : 
                                ($villa->status === 'maintenance' ? 'badge-pending' : 'badge-cancelled') }}">
                             @if($villa->status === 'available')
-                                Aktif / Siap Booking
+                                Aktif
                             @elseif($villa->status === 'unavailable')
                                 Tidak Aktif
                             @elseif($villa->status === 'maintenance')
@@ -183,10 +112,10 @@
                         </span>
                     </div>
                     <div class="p-4">
-                        <h3 class="font-semibold text-gray-900 mb-1">{{ $villa->name }}</h3>
+                        <h3 class="font-semibold text-gray-900 mb-1 text-sm">{{ $villa->name }}</h3>
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-primary font-bold">Rp {{ number_format($villa->price_per_night, 0, ',', '.') }}</span>
-                            <span class="text-gray-500">/ malam</span>
+                            <span class="text-gray-500 text-xs">/ malam</span>
                         </div>
                         <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
                             <span>{{ $villa->capacity }} tamu</span>

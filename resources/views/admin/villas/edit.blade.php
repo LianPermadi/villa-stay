@@ -119,9 +119,9 @@
                             <select name="status" 
                                 class="w-full px-4 py-3 rounded-lg border @error('status') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:ring-primary focus:border-transparent transition"
                                 required>
-                                <option value="available" {{ (old('status', $villa->status) == 'available') ? 'selected' : '' }}>Tersedia</option>
-                                <option value="unavailable" {{ (old('status', $villa->status) == 'unavailable') ? 'selected' : '' }}>Tidak Tersedia</option>
-                                <option value="maintenance" {{ (old('status', $villa->status) == 'maintenance') ? 'selected' : '' }}>Pemeliharaan</option>
+                                <option value="available" {{ (old('status', $villa->status) == 'available') ? 'selected' : '' }}>Aktif / Siap Booking</option>
+                                <option value="unavailable" {{ (old('status', $villa->status) == 'unavailable') ? 'selected' : '' }}>Tidak Aktif</option>
+                                <option value="maintenance" {{ (old('status', $villa->status) == 'maintenance') ? 'selected' : '' }}>Renovasi / Maintenance</option>
                             </select>
                             @error('status')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

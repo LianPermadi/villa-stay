@@ -67,12 +67,15 @@
                             </td>
                             <td class="px-6 py-4">
                                 <span class="badge {{ $villa->status === 'available' ? 'badge-available' : ($villa->status === 'maintenance' ? 'badge-pending' : 'badge-cancelled') }}">
-                                    {{ match($villa->status) {
-                                        'available' => 'Tersedia',
-                                        'unavailable' => 'Tidak Tersedia',
-                                        'maintenance' => 'Pemeliharaan',
-                                        default => $villa->status
-                                    } }}
+                                    @if($villa->status === 'available')
+                                        Aktif / Siap Booking
+                                    @elseif($villa->status === 'unavailable')
+                                        Tidak Aktif
+                                    @elseif($villa->status === 'maintenance')
+                                        Renovasi
+                                    @else
+                                        {{ $villa->status }}
+                                    @endif
                                 </span>
                             </td>
                             <td class="px-6 py-4">

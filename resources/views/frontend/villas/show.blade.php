@@ -32,8 +32,16 @@
                     @if($villa->is_featured)
                     <span class="absolute top-4 left-4 badge badge-available">Unggulan</span>
                     @endif
-                    <span class="absolute top-4 right-4 badge {{ $villa->status === "available" ? "badge-available" : "badge-pending" }}">
-                        {{ $villa->status === "available" ? "Tersedia" : "Tidak Tersedia" }}
+                    <span class="absolute top-4 right-4 badge {{ $villa->status === "available" ? "badge-available" : ($villa->status === "maintenance" ? "badge-pending" : "badge-cancelled") }}">
+                        @if($villa->status === "available")
+                            Aktif / Siap Booking
+                        @elseif($villa->status === "unavailable")
+                            Tidak Aktif
+                        @elseif($villa->status === "maintenance")
+                            Renovasi
+                        @else
+                            {{ $villa->status }}
+                        @endif
                     </span>
                 </div>
                 <div class="grid grid-cols-3 gap-2">

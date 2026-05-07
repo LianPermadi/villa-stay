@@ -18,6 +18,16 @@ class DashboardController extends Controller
         $totalRevenue = Revenue::sum("amount");
         $recentBookings = Booking::with("villa", "user")->latest()->take(5)->get();
         
+        // Villa status breakdown
+        $villaStats = [
+            'available' => Villa::where('status', 'available')->count(),
+            'unavailable' => Villa::where('status', 'unavailable')->count(),
+            'maintenance' => Villa::where('status', 'maintenance')->count(),
+        ];
+        
+        // Recent villas with status
+        $recentVillas = Villa::with('images')->latest()->take(5)->get();
+        
         // Monthly revenue data for chart
         $monthlyRevenue = Revenue::selectRaw("SUM(amount) as total, period")
             ->groupBy("period")
@@ -32,6 +42,8 @@ class DashboardController extends Controller
             "totalBookings",
             "totalRevenue",
             "recentBookings",
+            "villaStats",
+            "recentVillas",
             "monthlyRevenue",
             "predictions"
         ));

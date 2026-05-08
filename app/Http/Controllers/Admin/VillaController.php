@@ -31,12 +31,15 @@ class VillaController extends Controller
             "bathrooms" => "required|integer|min:1",
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
-            "amenities" => "nullable|array",
-            "amenities.*" => "string|max:100",
-            "images.*" => "nullable|image|mimes:jpeg,png,jpg|max:2048",
+            "amenities" => "nullable|string",
+            "images.*" => "nullable|file|mimes:jpeg,png,jpg|max:2048",
         ]);
         
-        $amenities = $request->amenities ? array_filter(array_map('trim', $request->amenities)) : null;
+        // Parse amenities from newline-separated string to array
+        $amenities = null;
+        if ($request->amenities) {
+            $amenities = array_filter(array_map('trim', explode("\n", $request->amenities)));
+        }
 
         $villa = Villa::create($request->except("images", "is_featured", "amenities") + [
             "is_featured" => $request->has("is_featured"),
@@ -45,12 +48,20 @@ class VillaController extends Controller
         
         if ($request->hasFile("images")) {
             foreach ($request->file("images") as $index => $image) {
-                $path = $image->store("villas", "public");
-                $villa->images()->create([
-                    "image_path" => $path,
-                    "is_primary" => $index === 0,
-                    "sort_order" => $index,
-                ]);
+                if ($image->isValid()) {
+                    $path = $image->store("villas", "public");
+                    $villa->images()->create([
+                        "image_path" => $path,
+                        "is_primary" => $index === 0,
+                        "sort_order" => $index,
+                    ]);
+                } else {
+                    \Log::warning('Image upload failed', [
+                        'villa' => $villa->id,
+                        'error_code' => $image->getError(),
+                        'original_name' => $image->getClientOriginalName(),
+                    ]);
+                }
             }
         }
         
@@ -60,6 +71,15 @@ class VillaController extends Controller
     public function edit(Villa $villa)
     {
         $villa->load('images');
+        // Decode amenities JSON to array for form textarea (newline-separated)
+        if (is_string($villa->amenities)) {
+            $decoded = json_decode($villa->amenities, true);
+            $villa->amenities = is_array($decoded) ? implode("\n", $decoded) : '';
+        } elseif (is_array($villa->amenities)) {
+            $villa->amenities = implode("\n", $villa->amenities);
+        } else {
+            $villa->amenities = '';
+        }
         return view("admin.villas.edit", compact("villa"));
     }
     
@@ -74,17 +94,75 @@ class VillaController extends Controller
             "bathrooms" => "required|integer|min:1",
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
-            "amenities" => "nullable|array",
-            "amenities.*" => "string|max:100",
-            "images.*" => "nullable|image|mimes:jpeg,png,jpg|max:2048",
+            "amenities" => "nullable|string",
+            "images.*" => "nullable|file|mimes:jpeg,png,jpg|max:2048",
         ]);
 
-        $amenities = $request->amenities ? array_filter(array_map('trim', $request->amenities)) : null;
+        // Parse amenities from newline-separated string to array
+        $amenities = null;
+        if ($request->amenities) {
+            $amenities = array_filter(array_map('trim', explode("\n", $request->amenities)));
+        }
         
         $villa->update($request->except("images", "is_featured", "amenities") + [
             "is_featured" => $request->has("is_featured"),
             "amenities" => $amenities,
         ]);
+
+        // Parse amenities from newline-separated string to array
+        $amenities = null;
+        if ($request->amenities) {
+            $amenities = array_filter(array_map('trim', explode("\n", $request->amenities)));
+        }
+        
+        $villa->update($request->except("images", "is_featured", "amenities") + [
+            "is_featured" => $request->has("is_featured"),
+            "amenities" => $amenities,
+        ]);
+        
+        if ($request->hasFile("images")) {
+            foreach ($request->file("images") as $index => $image) {
+                if ($image->isValid()) {
+                    $path = $image->store("villas", "public");
+                    $villa->images()->create([
+                        "image_path" => $path,
+                        "is_primary" => $index === 0 && !$villa->images()->where("is_primary", true)->exists(),
+                        "sort_order" => $index,
+                    ]);
+                } else {
+                    \Log::warning('Image upload failed during update', [
+                        'villa' => $villa->id,
+                        'error_code' => $image->getError(),
+                        'original_name' => $image->getClientOriginalName(),
+                    ]);
+                }
+            }
+        }
+        
+        return redirect()->route("admin.villas.index")->with("success", "Villa berhasil diperbarui!");
+    }
+        
+        if ($request->hasFile("images")) {
+            foreach ($request->file("images") as $index => $image) {
+                if ($image->isValid()) {
+                    $path = $image->store("villas", "public");
+                    $villa->images()->create([
+                        "image_path" => $path,
+                        "is_primary" => $index === 0 && !$villa->images()->where("is_primary", true)->exists(),
+                        "sort_order" => $index,
+                    ]);
+                } else {
+                    \Log::warning('Image upload failed during update', [
+                        'villa' => $villa->id,
+                        'error' => $image->getError(),
+                        'original_name' => $image->getClientOriginalName(),
+                    ]);
+                }
+            }
+        }
+        
+        return redirect()->route("admin.villas.index")->with("success", "Villa berhasil diperbarui!");
+    }
         
         if ($request->hasFile("images")) {
             foreach ($request->file("images") as $index => $image) {

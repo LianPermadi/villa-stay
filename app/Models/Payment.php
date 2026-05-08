@@ -16,6 +16,9 @@ class Payment extends Model
         'transaction_id',
         'proof_image',
         'status',
+        'payment_type',
+        'notes',
+        'admin_notes',
     ];
 
     protected $casts = [

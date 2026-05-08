@@ -15,6 +15,8 @@ Route::middleware(["auth"])->group(function () {
     Route::post("/bookings/{villaId}", [\App\Http\Controllers\Frontend\BookingController::class, "store"])->name("bookings.store");
     Route::get("/bookings", [\App\Http\Controllers\Frontend\BookingController::class, "index"])->name("bookings.index");
     Route::get("/bookings/{booking}", [\App\Http\Controllers\Frontend\BookingController::class, "show"])->name("bookings.show");
+    Route::post("/bookings/{booking}/upload_payment", [\App\Http\Controllers\Frontend\BookingController::class, "uploadPaymentProof"])->name("bookings.upload_payment");
+    Route::post("/bookings/{booking}/cancel", [\App\Http\Controllers\Frontend\BookingController::class, "cancel"])->name("bookings.cancel");
 });
 
 // User Profile Routes
@@ -28,7 +30,11 @@ Route::prefix("admin")->middleware(["auth", "admin"])->group(function () {
     Route::get("/dashboard", [\App\Http\Controllers\Admin\DashboardController::class, "index"])->name("admin.dashboard");
     
     Route::resource("villas", \App\Http\Controllers\Admin\VillaController::class)->names("admin.villas");
-    Route::resource("bookings", \App\Http\Controllers\Admin\BookingController::class)->names("admin.bookings");
+    Route::resource("bookings", \App\Http\Controllers\Admin\BookingController::class)->names("admin.bookings")->except(['update']);
+    Route::post("/bookings/{booking}/verify", [\App\Http\Controllers\Admin\BookingController::class, "verifyPayment"])->name("admin.bookings.verify");
+    Route::post("/bookings/{booking}/reject", [\App\Http\Controllers\Admin\BookingController::class, "rejectPayment"])->name("admin.bookings.reject");
+    Route::post("/bookings/{booking}/process_refund", [\App\Http\Controllers\Admin\BookingController::class, "processRefund"])->name("admin.bookings.process_refund");
+    Route::post("/bookings/{booking}/update_status", [\App\Http\Controllers\Admin\BookingController::class, "updateStatus"])->name("admin.bookings.update_status");
     Route::get("/reports", [\App\Http\Controllers\Admin\ReportController::class, "index"])->name("admin.reports");
 });
 

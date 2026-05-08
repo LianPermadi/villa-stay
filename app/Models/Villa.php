@@ -20,11 +20,15 @@ class Villa extends Model
         'status',
         'is_featured',
         'amenities',
+        'down_payment_percentage',
+        'payment_due_days',
     ];
 
     protected $casts = [
         'price_per_night' => 'decimal:2',
         'area' => 'decimal:2',
+        'down_payment_percentage' => 'decimal:2',
+        'payment_due_days' => 'integer',
         'is_featured' => 'boolean',
     ];
 
@@ -46,6 +50,23 @@ class Villa extends Model
     public function getFormattedPriceAttribute()
     {
         return 'Rp ' . number_format($this->price_per_night, 0, ',', '.');
+    }
+
+    public function calculateDownPaymentAmount($numNights)
+    {
+        $total = $this->price_per_night * $numNights;
+        return round(($total * $this->down_payment_percentage) / 100, 2);
+    }
+
+    public function getPaymentDueDateAttribute()
+    {
+        if ($this->payment_due_days == 0) {
+            return 'Hari H';
+        } elseif ($this->payment_due_days == 1) {
+            return 'H-1';
+        } else {
+            return 'H-' . $this->payment_due_days;
+        }
     }
 
     public function isAvailable($checkIn, $checkOut)

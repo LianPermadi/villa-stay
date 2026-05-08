@@ -47,19 +47,14 @@ class VillaController extends Controller
         ]);
         
         if ($request->hasFile("images")) {
+            $primaryIndex = $request->input('primary_image_index', 0);
             foreach ($request->file("images") as $index => $image) {
                 if ($image->isValid()) {
                     $path = $image->store("villas", "public");
                     $villa->images()->create([
                         "image_path" => $path,
-                        "is_primary" => $index === 0,
+                        "is_primary" => $index == $primaryIndex,
                         "sort_order" => $index,
-                    ]);
-                } else {
-                    \Log::warning('Image upload failed', [
-                        'villa' => $villa->id,
-                        'error_code' => $image->getError(),
-                        'original_name' => $image->getClientOriginalName(),
                     ]);
                 }
             }
@@ -109,24 +104,40 @@ class VillaController extends Controller
             "amenities" => $amenities,
         ]);
 
-        // Parse amenities from newline-separated string to array
-        $amenities = null;
-        if ($request->amenities) {
-            $amenities = array_filter(array_map('trim', explode("\n", $request->amenities)));
+        // Handle existing image primary selection
+        if ($request->filled('existing_primary_id')) {
+            $existingPrimaryId = $request->input('existing_primary_id');
+            // Demote all existing images
+            $villa->images()->update(["is_primary" => false]);
+            // Promote selected image
+            $villa->images()->where('id', $existingPrimaryId)->update(["is_primary" => true]);
         }
-        
-        $villa->update($request->except("images", "is_featured", "amenities") + [
-            "is_featured" => $request->has("is_featured"),
-            "amenities" => $amenities,
-        ]);
-        
+
+        // Handle new image uploads
         if ($request->hasFile("images")) {
+            $primaryIndex = $request->input('primary_image_index', -1);
+            $hasExistingPrimary = $villa->images()->where("is_primary", true)->exists();
+            
             foreach ($request->file("images") as $index => $image) {
                 if ($image->isValid()) {
                     $path = $image->store("villas", "public");
+                    
+                    // Determine if this new image should be primary
+                    $isPrimary = false;
+                    if ($primaryIndex >= 0 && $index == $primaryIndex) {
+                        $isPrimary = true;
+                        // Demote existing primary if any
+                        if ($hasExistingPrimary) {
+                            $villa->images()->where("is_primary", true)->update(["is_primary" => false]);
+                        }
+                    } else if (!$hasExistingPrimary && $index == 0) {
+                        // No existing primary and this is first image
+                        $isPrimary = true;
+                    }
+                    
                     $villa->images()->create([
                         "image_path" => $path,
-                        "is_primary" => $index === 0 && !$villa->images()->where("is_primary", true)->exists(),
+                        "is_primary" => $isPrimary,
                         "sort_order" => $index,
                     ]);
                 } else {
@@ -136,42 +147,6 @@ class VillaController extends Controller
                         'original_name' => $image->getClientOriginalName(),
                     ]);
                 }
-            }
-        }
-        
-        return redirect()->route("admin.villas.index")->with("success", "Villa berhasil diperbarui!");
-    }
-        
-        if ($request->hasFile("images")) {
-            foreach ($request->file("images") as $index => $image) {
-                if ($image->isValid()) {
-                    $path = $image->store("villas", "public");
-                    $villa->images()->create([
-                        "image_path" => $path,
-                        "is_primary" => $index === 0 && !$villa->images()->where("is_primary", true)->exists(),
-                        "sort_order" => $index,
-                    ]);
-                } else {
-                    \Log::warning('Image upload failed during update', [
-                        'villa' => $villa->id,
-                        'error' => $image->getError(),
-                        'original_name' => $image->getClientOriginalName(),
-                    ]);
-                }
-            }
-        }
-        
-        return redirect()->route("admin.villas.index")->with("success", "Villa berhasil diperbarui!");
-    }
-        
-        if ($request->hasFile("images")) {
-            foreach ($request->file("images") as $index => $image) {
-                $path = $image->store("villas", "public");
-                $villa->images()->create([
-                    "image_path" => $path,
-                    "is_primary" => $index === 0 && !$villa->images()->where("is_primary", true)->exists(),
-                    "sort_order" => $index,
-                ]);
             }
         }
         

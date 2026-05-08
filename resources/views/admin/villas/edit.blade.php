@@ -140,9 +140,9 @@
                     @if($villa->images->count() > 0)
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Gambar Saat Ini</label>
-                        <div class="grid grid-cols-3 gap-4">
+                        <div class="grid grid-cols-3 gap-4" id="current-images">
                             @foreach($villa->images as $image)
-                            <div class="relative group">
+                            <div class="relative group cursor-pointer" data-image-id="{{ $image->id }}" onclick="setExistingPrimary(this, {{ $image->id }})">
                                 <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
                                     @if(file_exists(public_path('storage/' . $image->image_path)))
                                         <img src="{{ asset('storage/' . $image->image_path) }}" alt="Villa image" class="w-full h-full object-cover">
@@ -154,21 +154,28 @@
                                         </div>
                                     @endif
                                 </div>
-                                <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center {{ $image->is_primary ? '' : 'hidden' }}">
+                                <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center {{ $image->is_primary ? '' : 'hidden' }}" data-badge>
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
                                     </svg>
                                 </span>
+                                <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>{{ $loop->index + 1 }}</span>
                             </div>
                             @endforeach
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">Gambar biru adalah gambar utama. Upload gambar baru untuk menambah mengganti.</p>
+                        <p class="text-sm text-gray-500 mt-2">Klik gambar untuk menjadikan primary. Gambar dengan badge hijau adalah gambar utama.</p>
+                        <input type="hidden" name="existing_primary_id" id="existing_primary_id" value="{{ $villa->images->firstWhere('is_primary', true)?->id ?? '' }}">
                     </div>
                     @endif
 
                     <!-- Upload Gambar Baru -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Tambah Gambar Baru</label>
+                        
+                        <!-- New Images Preview Container -->
+                        <div id="image-preview-container" class="grid grid-cols-3 gap-4 mb-4"></div>
+                        <input type="hidden" name="primary_image_index" id="primary_image_index" value="-1">
+                        
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
                             <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/jpg" class="hidden" id="image-upload">
                             <label for="image-upload" class="cursor-pointer">
@@ -213,4 +220,173 @@
         </div>
     </div>
 </div>
+
+@endsection
+
+@section("scripts")
+<script>
+    let newFileInputs = [];
+    let newPrimaryIndex = -1;
+    let existingPrimaryId = {{ $villa->images->firstWhere('is_primary', true)?->id ?? 'null' }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (existingPrimaryId) {
+            const el = document.querySelector(`#current-images [data-image-id="${existingPrimaryId}"]`);
+            if (el) {
+                const badge = el.querySelector('[data-badge]');
+                if (badge) badge.classList.remove('hidden');
+            }
+            document.getElementById('existing_primary_id').value = existingPrimaryId;
+        }
+    });
+
+    document.getElementById('image-upload').addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        newFileInputs = newFileInputs.concat(files);
+        
+        const previewContainer = document.getElementById('image-preview-container');
+        previewContainer.innerHTML = '';
+        
+        // Auto-select first new image as primary if no existing primary selected
+        if (newPrimaryIndex === -1 && !existingPrimaryId && newFileInputs.length > 0) {
+            newPrimaryIndex = 0;
+        }
+        
+        newFileInputs.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group cursor-pointer';
+                    previewDiv.dataset.index = index;
+                    previewDiv.onclick = function(event) { setNewPrimary(event, this); };
+                    const isPrimary = (index == newPrimaryIndex) ? '' : 'hidden';
+                    previewDiv.innerHTML = `
+                        <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
+                            <img src="${e.target.result}" alt="Preview ${index + 1}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center ${isPrimary}" data-badge>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                            </svg>
+                        </span>
+                        <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>${index + 1}</span>
+                        <button type="button" onclick="removeNewPreview(event, this)" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition" style="z-index: 10;">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        updateNewFileInput();
+    });
+
+    function setExistingPrimary(element, imageId) {
+        // Clear existing badges
+        document.querySelectorAll('#current-images [data-badge]').forEach(b => b.classList.add('hidden'));
+        const badge = element.querySelector('[data-badge]');
+        badge.classList.remove('hidden');
+        
+        // Update hidden input
+        document.getElementById('existing_primary_id').value = imageId;
+        existingPrimaryId = imageId;
+        
+        // Clear new primary
+        newPrimaryIndex = -1;
+        document.getElementById('primary_image_index').value = -1;
+        
+        // Clear new preview badges
+        document.querySelectorAll('#image-preview-container [data-badge]').forEach(b => b.classList.add('hidden'));
+    }
+
+    function setNewPrimary(event, element) {
+        event.stopPropagation();
+        const index = parseInt(element.dataset.index);
+        
+        // Clear new badges
+        document.querySelectorAll('#image-preview-container [data-badge]').forEach(b => b.classList.add('hidden'));
+        element.querySelector('[data-badge]').classList.remove('hidden');
+        
+        // Clear existing selection
+        document.querySelectorAll('#current-images [data-badge]').forEach(b => b.classList.add('hidden'));
+        const existingInput = document.getElementById('existing_primary_id');
+        if (existingInput) {
+            existingInput.value = '';
+        }
+        existingPrimaryId = null;
+        
+        newPrimaryIndex = index;
+        document.getElementById('primary_image_index').value = index;
+    }
+
+    function removeNewPreview(event, button) {
+        event.stopPropagation();
+        const preview = button.parentElement;
+        const index = parseInt(preview.dataset.index);
+        preview.remove();
+        
+        newFileInputs.splice(index, 1);
+        
+        // Adjust newPrimaryIndex
+        if (index < newPrimaryIndex) {
+            newPrimaryIndex--;
+        } else if (index === newPrimaryIndex && newFileInputs.length > 0) {
+            newPrimaryIndex = 0;
+        } else if (newFileInputs.length === 0) {
+            newPrimaryIndex = -1;
+        }
+        
+        rebuildNewPreviews();
+        updateNewFileInput();
+    }
+
+    function rebuildNewPreviews() {
+        const previewContainer = document.getElementById('image-preview-container');
+        previewContainer.innerHTML = '';
+        
+        newFileInputs.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group cursor-pointer';
+                    previewDiv.dataset.index = index;
+                    previewDiv.onclick = function(event) { setNewPrimary(event, this); };
+                    const isPrimary = (index == newPrimaryIndex) ? '' : 'hidden';
+                    previewDiv.innerHTML = `
+                        <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
+                            <img src="${e.target.result}" alt="Preview ${index + 1}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center ${isPrimary}" data-badge>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                            </svg>
+                        </span>
+                        <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>${index + 1}</span>
+                        <button type="button" onclick="removeNewPreview(event, this)" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition" style="z-index: 10;">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function updateNewFileInput() {
+        const fileInput = document.getElementById('image-upload');
+        const dt = new DataTransfer();
+        newFileInputs.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        document.getElementById('primary_image_index').value = newPrimaryIndex;
+    }
+</script>
 @endsection

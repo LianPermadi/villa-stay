@@ -133,6 +133,11 @@
                     <!-- Upload Gambar -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Villa</label>
+                        
+                        <!-- Image Preview Container -->
+                        <div id="image-preview-container" class="grid grid-cols-3 gap-4 mb-4"></div>
+                        <input type="hidden" name="primary_image_index" id="primary_image_index" value="0">
+                        
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
                             <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/jpg" class="hidden" id="image-upload">
                             <label for="image-upload" class="cursor-pointer">
@@ -168,10 +173,138 @@
 
 @section("scripts")
 <script>
-    // Preview images before upload
+    let primaryIndex = 0;
+    let fileInputs = [];
+
     document.getElementById('image-upload').addEventListener('change', function(e) {
-        const files = e.target.files;
-        // You can add preview logic here if needed
+        const files = Array.from(e.target.files);
+        const previewContainer = document.getElementById('image-preview-container');
+        
+        // Store files
+        fileInputs = fileInputs.concat(files);
+        
+        // Clear and rebuild all previews
+        previewContainer.innerHTML = '';
+        
+        // Auto-select first image as primary if none selected
+        if (primaryIndex === -1 && fileInputs.length > 0) {
+            primaryIndex = 0;
+        }
+        
+        fileInputs.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group cursor-pointer';
+                    previewDiv.dataset.index = index;
+                    previewDiv.onclick = function(event) { setPrimary(event, this); };
+                    const isPrimary = (index == primaryIndex) ? '' : 'hidden';
+                    previewDiv.innerHTML = `
+                        <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
+                            <img src="${e.target.result}" alt="Preview ${index + 1}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center ${isPrimary}" data-badge>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                            </svg>
+                        </span>
+                        <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>${index + 1}</span>
+                        <button type="button" onclick="removePreview(event, this)" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition" style="z-index: 10;">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Update file input with all accumulated files
+        updateFileInput();
     });
+
+    function setPrimary(event, element) {
+        event.stopPropagation();
+        const index = parseInt(element.dataset.index);
+        const allBadges = document.querySelectorAll('#image-preview-container [data-badge]');
+        allBadges.forEach(badge => badge.classList.add('hidden'));
+        
+        const badge = element.querySelector('[data-badge]');
+        badge.classList.remove('hidden');
+        
+        primaryIndex = index;
+        document.getElementById('primary_image_index').value = index;
+    }
+
+    function removePreview(event, button) {
+        event.stopPropagation();
+        const preview = button.parentElement;
+        const index = parseInt(preview.dataset.index);
+        preview.remove();
+        
+        // Remove file from array
+        fileInputs.splice(index, 1);
+        
+        // Adjust primaryIndex
+        if (index < primaryIndex) {
+            primaryIndex--;
+        } else if (index === primaryIndex && fileInputs.length > 0) {
+            primaryIndex = 0;
+        } else if (fileInputs.length === 0) {
+            primaryIndex = -1;
+        }
+        
+        rebuildPreviews();
+        updateFileInput();
+    }
+
+    function rebuildPreviews() {
+        const previewContainer = document.getElementById('image-preview-container');
+        previewContainer.innerHTML = '';
+        
+        fileInputs.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group cursor-pointer';
+                    previewDiv.dataset.index = index;
+                    previewDiv.onclick = function(event) { setPrimary(event, this); };
+                    const isPrimary = (index == primaryIndex) ? '' : 'hidden';
+                    previewDiv.innerHTML = `
+                        <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
+                            <img src="${e.target.result}" alt="Preview ${index + 1}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center ${isPrimary}" data-badge>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                            </svg>
+                        </span>
+                        <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>${index + 1}</span>
+                        <button type="button" onclick="removePreview(event, this)" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition" style="z-index: 10;">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function updateFileInput() {
+        const fileInput = document.getElementById('image-upload');
+        const dt = new DataTransfer();
+        fileInputs.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        
+        // Update primary index in hidden input
+        document.getElementById('primary_image_index').value = primaryIndex;
+    }
 </script>
 @endsection

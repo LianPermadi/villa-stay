@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class BookingController extends Controller
 {
@@ -52,8 +53,8 @@ class BookingController extends Controller
             $remainingAmount = $totalPrice - $downPaymentAmount;
         }
         
-        // Calculate payment due date (H-1 or Hari H)
-        $paymentDueDate = $checkIn->copy()->subDays($villa->payment_due_days);
+        // Final payment is open from H-7 until H-1 before check-in.
+        $paymentDueDate = $checkIn->copy()->subDay();
         
         $booking = Booking::create([
             "user_id" => Auth::id(),
@@ -84,15 +85,34 @@ class BookingController extends Controller
         return redirect()->route("bookings.show", $booking)->with("success", $message);
     }
      
-    public function index()
+    public function index(Request $request)
     {
-        $bookings = Booking::where("user_id", Auth::id())
-            ->with(['villa', 'payments' => function($q) {
+        $request->validate([
+            'approved_from' => 'nullable|date',
+            'approved_to' => 'nullable|date|after_or_equal:approved_from',
+        ]);
+
+        $approvedFrom = $request->input('approved_from', now()->subMonths(3)->toDateString());
+        $approvedTo = $request->input('approved_to', now()->addMonths(3)->toDateString());
+
+        $baseQuery = Booking::where("user_id", Auth::id())
+            ->with(['villa', 'payments' => function ($q) {
                 $q->latest()->limit(1);
-            }])
+            }]);
+
+        $approvedBookings = (clone $baseQuery)
+            ->where('payment_status', 'fully_paid')
+            ->whereDate('check_in', '>=', $approvedFrom)
+            ->whereDate('check_in', '<=', $approvedTo)
             ->latest()
             ->get();
-        return view("frontend.bookings.index", compact("bookings"));
+
+        $unapprovedBookings = (clone $baseQuery)
+            ->where('payment_status', '!=', 'fully_paid')
+            ->latest()
+            ->get();
+
+        return view("frontend.bookings.index", compact("approvedBookings", "unapprovedBookings", "approvedFrom", "approvedTo"));
     }
     
     public function show(Booking $booking)
@@ -131,14 +151,20 @@ class BookingController extends Controller
             'payment_type' => 'required|in:down_payment,final_payment',
         ];
 
-        // Transaction ID must be unique unless updating the same pending payment
+        // Transaction ID only needs to be unique for the same payment type.
+        // DP and final payment are separate payment stages and may reuse a bank reference.
+        $transactionIdRule = Rule::unique('payments', 'transaction_id')
+            ->where(fn ($query) => $query->where('payment_type', $request->payment_type));
+
         if ($existingPayment) {
-            $rules['transaction_id'] = 'required|string|max:255|unique:payments,transaction_id,' . $existingPayment->id;
-        } else {
-            $rules['transaction_id'] = 'required|string|max:255|unique:payments,transaction_id';
+            $transactionIdRule->ignore($existingPayment->id);
         }
 
-        $request->validate($rules);
+        $rules['transaction_id'] = ['required', 'string', 'max:255', $transactionIdRule];
+
+        $request->validate($rules, [
+            'transaction_id.unique' => 'No. rekening/transaksi ini sudah digunakan untuk jenis pembayaran yang sama.',
+        ]);
 
         $paymentType = $request->payment_type;
 
@@ -162,13 +188,20 @@ class BookingController extends Controller
                 return back()->withErrors(['payment' => 'DP belum dibayarkan. Harap lunasi DP terlebih dahulu sebelum melakukan pelunasan.']);
             }
 
-            // Check if within due date (inclusive of the due date until end of day)
-            if ($booking->payment_due_date) {
-                $now = Carbon::now();
-                $dueDate = Carbon::parse($booking->payment_due_date)->endOfDay();
-                if ($now->gt($dueDate)) {
-                    return back()->withErrors(['payment' => 'Pelunasan hanya dapat diupload batas pembayaran (' . Carbon::parse($booking->payment_due_date)->format('d M Y') . ').']);
-                }
+            $now = Carbon::now();
+            $finalPaymentStartDate = Carbon::parse($booking->check_in)->subDays(7)->startOfDay();
+            $finalPaymentEndDate = Carbon::parse($booking->check_in)->subDay()->endOfDay();
+
+            if ($now->lt($finalPaymentStartDate)) {
+                return back()->withErrors([
+                    'payment' => 'Pelunasan dapat dilakukan mulai H-7 check-in (' . $finalPaymentStartDate->format('d M Y') . ') sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                ]);
+            }
+
+            if ($now->gt($finalPaymentEndDate)) {
+                return back()->withErrors([
+                    'payment' => 'Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                ]);
             }
         }
 
@@ -230,4 +263,3 @@ class BookingController extends Controller
         return back()->with("success", "Booking berhasil dibatalkan");
     }
 }
-

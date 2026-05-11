@@ -191,9 +191,24 @@
                                     <span>{{ $booking->payment->payment_type === 'down_payment' ? 'DP' : 'Pelunasan' }}</span>
                                 </div>
                                 @if($booking->payment->proof_image)
+                                @php
+                                    $proofUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($booking->payment->proof_image);
+                                    $proofTitle = ($booking->payment->payment_type === 'down_payment' ? 'DP' : 'Pelunasan') . ' - ' . $booking->payment->transaction_id;
+                                @endphp
                                 <div class="mt-3">
                                     <span class="text-gray-600 block mb-2">Bukti Transfer</span>
-                                    <img src="{{ asset('storage/' . $booking->payment->proof_image) }}" alt="Proof" class="max-w-xs rounded border">
+                                    <button type="button"
+                                        class="js-payment-proof-trigger group w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-white text-left transition hover:border-primary hover:shadow-md"
+                                        data-proof-url="{{ $proofUrl }}"
+                                        data-proof-title="{{ $proofTitle }}">
+                                        <img src="{{ $proofUrl }}" alt="Bukti pembayaran {{ $booking->payment->transaction_id }}" class="h-48 w-full object-cover transition duration-300 group-hover:scale-105">
+                                        <span class="flex items-center justify-between px-3 py-2 text-xs font-semibold text-primary">
+                                            Klik untuk memperbesar bukti pembayaran
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                        </span>
+                                    </button>
                                 </div>
                                 @endif
                                 @if($booking->payment->admin_notes)
@@ -285,6 +300,22 @@
     </div>
 </div>
 
+<div id="paymentProofModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="paymentProofTitle">
+    <div class="relative w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <h3 id="paymentProofTitle" class="font-display text-xl font-bold text-primary">Bukti Pembayaran</h3>
+            <button type="button" onclick="closePaymentProofModal()" class="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800" aria-label="Tutup modal">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="bg-gray-50 p-4">
+            <img id="paymentProofImage" src="" alt="Bukti pembayaran" class="mx-auto max-h-[78vh] w-auto max-w-full rounded-lg object-contain shadow-sm">
+        </div>
+    </div>
+</div>
+
 <!-- Reject Modal -->
 @if($booking->payment && $booking->payment->status === 'pending')
 <div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -322,13 +353,57 @@
     </div>
 </div>
 
+@endif
+
  <script>
+ const paymentProofModal = document.getElementById('paymentProofModal');
+ const paymentProofImage = document.getElementById('paymentProofImage');
+ const paymentProofTitle = document.getElementById('paymentProofTitle');
+
+ function openPaymentProofModal(src, title) {
+     paymentProofImage.src = src;
+     paymentProofTitle.textContent = title || 'Bukti Pembayaran';
+     paymentProofModal.classList.remove('hidden');
+     paymentProofModal.classList.add('flex');
+     document.body.classList.add('overflow-hidden');
+ }
+
+ function closePaymentProofModal() {
+     paymentProofModal.classList.add('hidden');
+     paymentProofModal.classList.remove('flex');
+     paymentProofImage.src = '';
+     document.body.classList.remove('overflow-hidden');
+ }
+
+ document.querySelectorAll('.js-payment-proof-trigger').forEach(function(button) {
+     button.addEventListener('click', function() {
+         openPaymentProofModal(this.dataset.proofUrl, this.dataset.proofTitle);
+     });
+ });
+
+ paymentProofModal.addEventListener('click', function(event) {
+     if (event.target === paymentProofModal) {
+         closePaymentProofModal();
+     }
+ });
+
+ document.addEventListener('keydown', function(event) {
+     if (event.key === 'Escape' && !paymentProofModal.classList.contains('hidden')) {
+         closePaymentProofModal();
+     }
+ });
+
  function showRejectModal() {
-     document.getElementById('rejectModal').style.display = 'flex';
+     const rejectModal = document.getElementById('rejectModal');
+     if (rejectModal) {
+         rejectModal.style.display = 'flex';
+     }
  }
  function hideRejectModal() {
-     document.getElementById('rejectModal').style.display = 'none';
+     const rejectModal = document.getElementById('rejectModal');
+     if (rejectModal) {
+         rejectModal.style.display = 'none';
+     }
  }
  </script>
- @endif
  @endsection

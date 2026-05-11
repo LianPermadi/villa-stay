@@ -7,16 +7,16 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-12">
             <h1 class="font-display text-4xl font-bold text-primary mb-4">Riwayat Pemesanan</h1>
-            <p class="text-gray-600">Kelola dan lihat riwayat pemesanan villa Anda</p>
+            <p class="text-gray-600">Kelola pemesanan yang masih proses pembayaran dan riwayat yang sudah lunas</p>
         </div>
-        
+
         @if(session("success"))
         <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
             {{ session("success") }}
         </div>
         @endif
-        
-        @if($bookings->isEmpty())
+
+        @if($approvedBookings->isEmpty() && $unapprovedBookings->isEmpty())
         <div class="bg-white rounded-2xl shadow-lg p-12 text-center">
             <svg class="w-24 h-24 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -24,63 +24,54 @@
             <h3 class="text-xl font-semibold text-gray-700 mb-2">Belum ada pemesanan</h3>
             <p class="text-gray-500 mb-6">Mulai petualangan Anda dengan memesan villa impian</p>
             <a href="{{ route('villas.index') }}" class="btn-primary inline-flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
                 Cari Villa
             </a>
         </div>
         @else
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Villa</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tanggal</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tamu</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Total</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Pembayaran</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($bookings as $booking)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div class="font-medium text-gray-900">{{ $booking->villa->name }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-gray-600">{{ \Carbon\Carbon::parse($booking->check_in)->format('d M') }} - {{ \Carbon\Carbon::parse($booking->check_out)->format('d M Y') }}</div>
-                                <div class="text-sm text-gray-500">{{ $booking->num_nights }} malam</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-gray-600">{{ $booking->num_guests }} tamu</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-primary">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                @php
-                                    $paymentBadge = [
-                                        'none' => ['class' => 'bg-gray-100 text-gray-800', 'label' => 'Belum bayar'],
-                                        'dp_paid' => ['class' => 'bg-blue-100 text-blue-800', 'label' => 'DP Paid'],
-                                        'fully_paid' => ['class' => 'bg-green-100 text-green-800', 'label' => 'Lunas'],
-                                        'refunded' => ['class' => 'bg-red-100 text-red-800', 'label' => 'Refunded'],
-                                    ][$booking->payment_status] ?? ['class' => 'bg-gray-100 text-gray-800', 'label' => $booking->payment_status];
-                                @endphp
-                                <span class="px-3 py-1 rounded-full text-sm font-medium {{ $paymentBadge['class'] }}">
-                                    {{ $paymentBadge['label'] }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <a href="{{ route('bookings.show', $booking) }}" class="text-primary hover:text-primary-dark font-medium">Detail</a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+        <div class="space-y-8">
+            <section class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100">
+                    <h2 class="font-display text-2xl font-bold text-primary">Proses Pelunasan / Belum Selesai</h2>
+                    <p class="text-sm text-gray-500 mt-1">Pemesanan yang belum lunas, termasuk DP yang sudah approve dan masih menunggu pelunasan</p>
+                </div>
+                @if($unapprovedBookings->isEmpty())
+                    <div class="px-6 py-10 text-center text-gray-500">Tidak ada pemesanan yang masih proses pelunasan.</div>
+                @else
+                    @include('frontend.bookings.partials.booking-table', ['bookings' => $unapprovedBookings, 'showStatus' => true])
+                @endif
+            </section>
+
+            <section class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <h2 class="font-display text-2xl font-bold text-primary">Selesai Approve / Lunas</h2>
+                            <p class="text-sm text-gray-500 mt-1">Riwayat pemesanan yang seluruh pembayarannya sudah diverifikasi</p>
+                        </div>
+                        <form method="GET" action="{{ route('bookings.index') }}" class="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+                            <div>
+                                <label for="approved_from" class="block text-xs font-semibold text-gray-600 mb-1">Dari tanggal</label>
+                                <input type="date" id="approved_from" name="approved_from" value="{{ $approvedFrom }}" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="approved_to" class="block text-xs font-semibold text-gray-600 mb-1">Sampai tanggal</label>
+                                <input type="date" id="approved_to" name="approved_to" value="{{ $approvedTo }}" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <button type="submit" class="btn-primary justify-center self-end px-5 py-2">
+                                Filter
+                            </button>
+                            @if(request('approved_from') || request('approved_to'))
+                                <a href="{{ route('bookings.index') }}" class="btn-secondary text-center self-end px-5 py-2">Reset</a>
+                            @endif
+                        </form>
+                    </div>
+                </div>
+                @if($approvedBookings->isEmpty())
+                    <div class="px-6 py-10 text-center text-gray-500">Tidak ada riwayat lunas pada rentang tanggal ini.</div>
+                @else
+                    @include('frontend.bookings.partials.booking-table', ['bookings' => $approvedBookings, 'showStatus' => true])
+                @endif
+            </section>
         </div>
         @endif
     </div>

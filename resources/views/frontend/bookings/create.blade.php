@@ -2,6 +2,55 @@
 
 @section("title", "Pesan Villa - " . $villa->name)
 
+@section("styles")
+<style>
+    .payment-option {
+        border: 2px solid #e5e7eb;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(45, 90, 39, 0.06);
+    }
+
+    .payment-option:hover {
+        border-color: rgba(45, 90, 39, 0.45);
+        background: rgba(248, 245, 240, 0.7);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 34px rgba(45, 90, 39, 0.12);
+    }
+
+    .payment-option:has(input:checked) {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, rgba(45, 90, 39, 0.08), rgba(201, 169, 98, 0.12));
+        box-shadow: 0 18px 38px rgba(45, 90, 39, 0.16);
+    }
+
+    .payment-check {
+        border: 2px solid #d1d5db;
+        background: #fff;
+        color: transparent;
+    }
+
+    .payment-option:has(input:checked) .payment-check {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+    }
+
+    .payment-option:has(input:checked) .payment-title {
+        color: var(--primary);
+    }
+
+    .payment-option:has(input:checked) .payment-divider {
+        border-color: rgba(45, 90, 39, 0.18);
+    }
+
+    .payment-badge {
+        background: rgba(201, 169, 98, 0.22);
+        color: var(--secondary);
+    }
+</style>
+@endsection
+
 @section("content")
 <div class="py-16">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,7 +169,7 @@
                                 </svg>
                                 <div class="text-sm">
                                     <p class="font-semibold">Pembayaran DP wajib {{ $villa->down_payment_percentage }}% dari total biaya</p>
-                                    <p class="text-gray-600">Pelunasan {{ $villa->payment_due_days == 0 ? 'Hari H' : 'H-'.$villa->payment_due_days }}</p>
+                                    <p class="text-gray-600">Pelunasan H-7 sampai H-1 sebelum check-in</p>
                                 </div>
                             </div>
                         </div>
@@ -129,59 +178,53 @@
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-gray-700 mb-3">Pilih Jenis Pembayaran</label>
                             <div class="grid md:grid-cols-2 gap-4">
-                                
-                                <!-- DP Option -->
-                                <label id="dp-option" for="payment_plan_dp" class="relative flex flex-col p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ease-out overflow-hidden
-                                    {{ old('payment_plan', 'dp') == 'dp' 
-                                        ? 'border-primary bg-primary/5 shadow-md scale-[1.02]' 
-                                        : 'border-gray-200 hover:border-primary hover:bg-primary/5' }}">
+                                <label id="dp-option" for="payment_plan_dp" class="payment-option relative flex min-h-[180px] cursor-pointer flex-col overflow-hidden p-5 transition-all duration-200 ease-out">
                                     <input type="radio" id="payment_plan_dp" name="payment_plan" value="dp" {{ old('payment_plan', 'dp') == 'dp' ? 'checked' : '' }} class="sr-only">
-                                    
-                                    <!-- Selected indicator -->
-                                    <div class="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center pointer-events-none
-                                        {{ old('payment_plan', 'dp') == 'dp' ? 'bg-primary' : 'border-2 border-gray-300 bg-white' }}">
-                                        @if(old('payment_plan', 'dp') == 'dp')
-                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <span class="payment-title block font-display text-xl font-bold text-gray-900">DP</span>
+                                            <span class="mt-1 block text-sm font-semibold text-secondary">Down Payment</span>
+                                        </div>
+                                        <span class="payment-check flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                             </svg>
-                                        @endif
-                                    </div>
-                                    
-                                    <span class="font-semibold text-xl mb-2 {{ old('payment_plan', 'dp') == 'dp' ? 'text-primary' : 'text-gray-900' }}">
-                                        DP (Down Payment)
-                                    </span>
-                                    <span class="text-sm text-gray-600 mb-3">Bayar {{ $villa->down_payment_percentage }}% dahulu</span>
-                                    <div class="mt-auto pt-3 border-t {{ old('payment_plan', 'dp') == 'dp' ? 'border-primary/20' : 'border-gray-200' }}">
-                                        <span class="text-xs font-medium {{ old('payment_plan', 'dp') == 'dp' ? 'text-primary' : 'text-gray-500' }}">
-                                            Sisanya dibayar di H-1 atau Hari H
                                         </span>
+                                    </div>
+
+                                    <div class="mt-5 flex items-center gap-2">
+                                        <span class="payment-badge rounded-full px-3 py-1 text-sm font-bold">{{ $villa->down_payment_percentage }}%</span>
+                                        <span class="text-sm text-gray-600">bayar di awal</span>
+                                    </div>
+
+                                    <div class="payment-divider mt-auto border-t border-gray-200 pt-4">
+                                        <p class="text-sm font-medium text-gray-600">Sisanya dilunasi pada H-7 sampai H-1 sebelum check-in.</p>
                                     </div>
                                 </label>
-                                
-                                <!-- Full Payment Option -->
-                                <label id="full-option" for="payment_plan_full" class="relative flex flex-col p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ease-out overflow-hidden
-                                    {{ old('payment_plan') == 'full' 
-                                        ? 'border-blue-500 bg-blue-50 shadow-md scale-[1.02]' 
-                                        : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50' }}">
+
+                                <label id="full-option" for="payment_plan_full" class="payment-option relative flex min-h-[180px] cursor-pointer flex-col overflow-hidden p-5 transition-all duration-200 ease-out">
                                     <input type="radio" id="payment_plan_full" name="payment_plan" value="full" {{ old('payment_plan') == 'full' ? 'checked' : '' }} class="sr-only">
-                                    
-                                    <!-- Selected indicator -->
-                                    <div class="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center pointer-events-none
-                                        {{ old('payment_plan') == 'full' ? 'bg-blue-500' : 'border-2 border-gray-300 bg-white' }}">
-                                        @if(old('payment_plan') == 'full')
-                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <span class="payment-title block font-display text-xl font-bold text-gray-900">Pelunasan Langsung</span>
+                                            <span class="mt-1 block text-sm font-semibold text-secondary">Pembayaran penuh</span>
+                                        </div>
+                                        <span class="payment-check flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                             </svg>
-                                        @endif
+                                        </span>
                                     </div>
-                                    
-                                    <div class="flex items-center gap-3">
-                                        <span class="font-semibold text-xl {{ old('payment_plan') == 'full' ? 'text-blue-600' : 'text-gray-900' }}">
-                                            Pelunasan Langsung
-                                        </span>
-                                        <span class="bg-blue-100 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
-                                            100%
-                                        </span>
+
+                                    <div class="mt-5 flex items-center gap-2">
+                                        <span class="payment-badge rounded-full px-3 py-1 text-sm font-bold">100%</span>
+                                        <span class="text-sm text-gray-600">lunas di awal</span>
+                                    </div>
+
+                                    <div class="payment-divider mt-auto border-t border-gray-200 pt-4">
+                                        <p class="text-sm font-medium text-gray-600">Tidak ada sisa tagihan setelah booking dibuat.</p>
                                     </div>
                                 </label>
                             </div>
@@ -292,22 +335,17 @@
         }
         
         function updateRadioStyles() {
-            const selected = document.querySelector("input[name=payment_plan]:checked");
-            if (!selected) return;
-            
-            const dpOption = document.getElementById('dp-option');
-            const fullOption = document.getElementById('full-option');
-            
-            if (selected.value === 'dp') {
+            return;
+            if (false) {
                 // DP selected — green theme
                 dpOption.classList.add('border-primary', 'bg-primary/5', 'shadow-md', 'scale-[1.02]');
                 dpOption.classList.remove('border-gray-200');
                 
-                fullOption.classList.remove('border-blue-500', 'bg-blue-50', 'shadow-md', 'scale-[1.02]');
+                fullOption.classList.remove('border-primary', 'shadow-md', 'scale-[1.02]');
                 fullOption.classList.add('border-gray-200');
             } else {
-                // Full payment selected — blue theme
-                fullOption.classList.add('border-blue-500', 'bg-blue-50', 'shadow-md', 'scale-[1.02]');
+                // Full payment selected
+                fullOption.classList.add('border-primary', 'shadow-md', 'scale-[1.02]');
                 fullOption.classList.remove('border-gray-200');
                 
                 dpOption.classList.remove('border-primary', 'bg-primary/5', 'shadow-md', 'scale-[1.02]');
@@ -320,7 +358,6 @@
         paymentPlanInputs.forEach(input => {
             input.addEventListener("change", function() {
                 calculateTotal();
-                updateRadioStyles();
             });
         });
         
@@ -332,8 +369,7 @@
             }
         });
         
-        // Initialize styles and calculation
-        updateRadioStyles();
+        // Initialize calculation
         calculateTotal();
     });
 </script>

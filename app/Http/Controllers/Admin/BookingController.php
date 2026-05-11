@@ -11,10 +11,31 @@ use Illuminate\Support\Facades\Storage;
 
 class BookingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $bookings = Booking::with(['villa', 'user', 'payment'])->latest()->paginate(10);
-        return view("admin.bookings.index", compact("bookings"));
+        $request->validate([
+            'approved_from' => 'nullable|date',
+            'approved_to' => 'nullable|date|after_or_equal:approved_from',
+        ]);
+
+        $approvedFrom = $request->input('approved_from', now()->subMonths(3)->toDateString());
+        $approvedTo = $request->input('approved_to', now()->addMonths(3)->toDateString());
+
+        $baseQuery = Booking::with(['villa', 'user', 'payment']);
+
+        $approvedBookings = (clone $baseQuery)
+            ->where('payment_status', 'fully_paid')
+            ->whereDate('check_in', '>=', $approvedFrom)
+            ->whereDate('check_in', '<=', $approvedTo)
+            ->latest()
+            ->get();
+
+        $unapprovedBookings = (clone $baseQuery)
+            ->where('payment_status', '!=', 'fully_paid')
+            ->latest()
+            ->get();
+
+        return view("admin.bookings.index", compact("approvedBookings", "unapprovedBookings", "approvedFrom", "approvedTo"));
     }
     
     public function show(Booking $booking)
@@ -190,4 +211,3 @@ class BookingController extends Controller
         return back()->with("success", "Status booking berhasil diperbarui!");
     }
 }
-

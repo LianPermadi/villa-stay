@@ -192,7 +192,12 @@
                             $pendingApproval = $booking->payments->where('status', 'pending')->whereNotNull('proof_image')->first();
                             // Determine which payments are still needed
                             $needDP = !$dpPayment || $dpPayment->status !== 'verified';
-                            $needFinal = $dpPayment && $dpPayment->status === 'verified' && ($booking->remaining_amount > 0) && (!$finalPayment || $finalPayment->status !== 'verified');
+                            $rawNeedFinal = $dpPayment && $dpPayment->status === 'verified' && ($booking->remaining_amount > 0) && (!$finalPayment || $finalPayment->status !== 'verified');
+                            $finalPaymentStartDate = \Carbon\Carbon::parse($booking->check_in)->subDays(7)->startOfDay();
+                            $finalPaymentEndDate = \Carbon\Carbon::parse($booking->check_in)->subDay()->endOfDay();
+                            $now = \Carbon\Carbon::now();
+                            $canPayFinalNow = $rawNeedFinal && $now->betweenIncluded($finalPaymentStartDate, $finalPaymentEndDate);
+                            $needFinal = $rawNeedFinal && $canPayFinalNow;
                             $canUpload = !$pendingApproval && ($needDP || $needFinal);
                         @endphp
 
@@ -206,6 +211,22 @@
                                 <p class="font-medium">Pembayaran DP ditolak</p>
                                 <p class="text-sm mt-1"><strong>Alasan:</strong> {{ $dpPayment->admin_notes }}</p>
                                 <p class="text-sm mt-1">Silakan upload ulang bukti pembayaran DP.</p>
+                            </div>
+                        @elseif($rawNeedFinal && !$canPayFinalNow)
+                            <div class="bg-primary/5 border border-primary/20 text-gray-700 p-4 rounded-lg mb-4">
+                                <p class="font-medium text-primary">Jadwal pelunasan belum tersedia</p>
+                                @if($now->lt($finalPaymentStartDate))
+                                    <p class="text-sm mt-1">
+                                        Pelunasan sisa pembayaran dapat dilakukan mulai
+                                        <strong>{{ $finalPaymentStartDate->format('d M Y') }}</strong>
+                                        sampai <strong>{{ $finalPaymentEndDate->format('d M Y') }}</strong>.
+                                    </p>
+                                @else
+                                    <p class="text-sm mt-1">
+                                        Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai
+                                        <strong>{{ $finalPaymentEndDate->format('d M Y') }}</strong>.
+                                    </p>
+                                @endif
                             </div>
                         @endif
 
@@ -251,7 +272,7 @@
                                                 @if($needFinal)
                                                 <label class="flex items-center gap-2">
                                                     <input type="radio" name="payment_type" value="final_payment" {{ ( !$needDP && $needFinal ) ? 'checked' : '' }} class="w-4 h-4 text-primary focus:ring-primary">
-                                                    <span>Pelunasan (H-1/H) - Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}</span>
+                                                    <span>Pelunasan (H-7 s/d H-1) - Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}</span>
                                                 </label>
                                                 @endif
                                             </div>
@@ -259,16 +280,16 @@
                                                 @if($booking->remaining_amount == 0)
                                                     Pembayaran lunas sekali pembayaran
                                                 @else
-                                                    Pelunasan dapat dilakukan maksimal H-1 atau Hari H check-in
+                                                    Pelunasan dapat dilakukan setelah DP terverifikasi pada H-7 sampai H-1 check-in
                                                 @endif
                                             </p>
                                         </div>
 
                                 <div class="mb-4">
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Upload Bukti Pembayaran</label>
-                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer" onclick="document.getElementById('proof_image').click()">
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-primary transition">
                                         <input type="file" id="proof_image" name="proof_image" accept="image/jpeg,image/png,image/jpg" class="hidden" required onchange="previewImage(this)">
-                                        <label for="proof_image" class="cursor-pointer">
+                                        <label for="proof_image" class="block cursor-pointer p-6">
                                             <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
@@ -392,8 +413,23 @@
                             <p class="text-sm"><strong>Transaksi:</strong> {{ $payment->transaction_id }}</p>
                             @endif
                             @if($payment->proof_image)
+                            @php
+                                $proofUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($payment->proof_image);
+                                $proofTitle = ucfirst(str_replace('_', ' ', $payment->payment_type)) . ' - ' . $payment->transaction_id;
+                            @endphp
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $payment->proof_image) }}" alt="Bukti" class="w-full rounded border max-h-40 object-cover">
+                                <button type="button"
+                                    class="js-payment-proof-trigger group w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left transition hover:border-primary hover:shadow-md"
+                                    data-proof-url="{{ $proofUrl }}"
+                                    data-proof-title="{{ $proofTitle }}">
+                                    <img src="{{ $proofUrl }}" alt="Bukti pembayaran {{ $payment->transaction_id }}" class="h-36 w-full object-cover transition duration-300 group-hover:scale-105">
+                                    <span class="flex items-center justify-between px-3 py-2 text-xs font-semibold text-primary">
+                                        Lihat bukti pembayaran
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </span>
+                                </button>
                             </div>
                             @endif
                             @if($payment->admin_notes)
@@ -419,10 +455,63 @@
         </div>
     </div>
  </div>
+
+ <div id="payment-proof-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="payment-proof-title">
+     <div class="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+         <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+             <h3 id="payment-proof-title" class="font-display text-xl font-bold text-primary">Bukti Pembayaran</h3>
+             <button type="button" onclick="closePaymentProofModal()" class="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800" aria-label="Tutup modal">
+                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                 </svg>
+             </button>
+         </div>
+         <div class="bg-gray-50 p-4">
+             <img id="payment-proof-modal-img" src="" alt="Bukti pembayaran" class="mx-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain shadow-sm">
+         </div>
+     </div>
+ </div>
  @endsection
 
  @section("scripts")
  <script>
+     const paymentProofModal = document.getElementById('payment-proof-modal');
+     const paymentProofModalImg = document.getElementById('payment-proof-modal-img');
+     const paymentProofTitle = document.getElementById('payment-proof-title');
+
+     function openPaymentProofModal(src, title) {
+         paymentProofModalImg.src = src;
+         paymentProofTitle.textContent = title || 'Bukti Pembayaran';
+         paymentProofModal.classList.remove('hidden');
+         paymentProofModal.classList.add('flex');
+         document.body.classList.add('overflow-hidden');
+     }
+
+     function closePaymentProofModal() {
+         paymentProofModal.classList.add('hidden');
+         paymentProofModal.classList.remove('flex');
+         paymentProofModalImg.src = '';
+         document.body.classList.remove('overflow-hidden');
+     }
+
+     document.querySelectorAll('.js-payment-proof-trigger').forEach(function(button) {
+         button.addEventListener('click', function() {
+             openPaymentProofModal(this.dataset.proofUrl, this.dataset.proofTitle);
+         });
+     });
+
+     paymentProofModal.addEventListener('click', function(event) {
+         if (event.target === paymentProofModal) {
+             closePaymentProofModal();
+         }
+     });
+
+     document.addEventListener('keydown', function(event) {
+         if (event.key === 'Escape' && !paymentProofModal.classList.contains('hidden')) {
+             closePaymentProofModal();
+         }
+     });
+
      function previewImage(input) {
          const previewContainer = document.getElementById('image-preview');
          const previewImg = document.getElementById('preview-img');

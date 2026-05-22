@@ -1,0 +1,12 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Villa image placeholder</title>
+  <desc id="desc">Default placeholder for villa images.</desc>
+  <rect width="1200" height="800" fill="#E8F0E6"/>
+  <rect x="120" y="120" width="960" height="560" rx="40" fill="#F7FAF6"/>
+  <path d="M270 520L466 324C486 304 518 304 538 324L658 444L710 392C730 372 762 372 782 392L930 540V600H270V520Z" fill="#BFD2BA"/>
+  <circle cx="820" cy="270" r="70" fill="#D8E5D4"/>
+  <path d="M420 560V430L600 300L780 430V560" stroke="#2D5A27" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M510 560V470H690V560" stroke="#2D5A27" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M370 430L600 260L830 430" stroke="#2D5A27" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="600" y="700" text-anchor="middle" fill="#2D5A27" font-family="Arial, sans-serif" font-size="42" font-weight="700">VilaStay</text>
+</svg>

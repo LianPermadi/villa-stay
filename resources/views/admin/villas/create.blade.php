@@ -135,7 +135,7 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Villa</label>
                         
                         <!-- Image Preview Container -->
-                        <div id="image-preview-container" class="grid grid-cols-3 gap-4 mb-4"></div>
+                        <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4"></div>
                         <input type="hidden" name="primary_image_index" id="primary_image_index" value="0">
                         
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
@@ -145,10 +145,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                 </svg>
                                 <p class="text-gray-600">Klik untuk upload gambar villa</p>
-                                <p class="text-sm text-gray-400 mt-1">JPEG, PNG, JPG (maks 2MB per file)</p>
+                                <p class="text-sm text-gray-400 mt-1">JPEG, PNG, JPG, WEBP (maks 4MB per file)</p>
                             </label>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">Gambar pertama akan dijadikan gambar utama.</p>
+                        <p class="text-sm text-gray-500 mt-2">Klik preview untuk memilih gambar utama. Jika kosong, placeholder default akan tampil.</p>
                         @error('images.*')
                             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -177,7 +177,7 @@
     let fileInputs = [];
 
     document.getElementById('image-upload').addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files).filter(isValidImage);
         const previewContainer = document.getElementById('image-preview-container');
         
         // Store files
@@ -305,6 +305,13 @@
         
         // Update primary index in hidden input
         document.getElementById('primary_image_index').value = primaryIndex;
+    }
+
+    function isValidImage(file) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const maxSize = 4 * 1024 * 1024;
+
+        return allowedTypes.includes(file.type) && file.size <= maxSize;
     }
 </script>
 @endsection

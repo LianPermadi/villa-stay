@@ -42,6 +42,17 @@ class Villa extends Model
         return $this->hasOne(VillaImage::class)->where('is_primary', true);
     }
 
+    public function getPrimaryImageUrlAttribute()
+    {
+        $images = $this->relationLoaded('images')
+            ? $this->images
+            : $this->images()->orderByDesc('is_primary')->orderBy('sort_order')->get();
+
+        $image = $images->firstWhere('is_primary', true) ?? $images->sortBy('sort_order')->first();
+
+        return $image?->url ?? asset('images/villa-placeholder.svg');
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);

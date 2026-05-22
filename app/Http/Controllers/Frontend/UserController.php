@@ -22,10 +22,19 @@ class UserController extends Controller
             "email" => "required|email|unique:users,email," . Auth::id(),
             "phone" => "nullable|string",
             "address" => "nullable|string",
+            "bank_name" => "nullable|required_with:bank_account_number,bank_account_holder|string|max:100",
+            "bank_account_number" => "nullable|required_with:bank_name,bank_account_holder|string|max:50",
+            "bank_account_holder" => "nullable|required_with:bank_name,bank_account_number|string|max:255",
         ]);
         
         $user = Auth::user();
-        $user->update($request->only("name", "email", "phone", "address"));
+        $data = $request->only("name", "email", "phone", "address");
+
+        if ($user->isAdmin()) {
+            $data += $request->only("bank_name", "bank_account_number", "bank_account_holder");
+        }
+
+        $user->update($data);
         
         return back()->with("success", "Profil berhasil diperbarui!");
     }

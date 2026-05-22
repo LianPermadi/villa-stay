@@ -140,19 +140,11 @@
                     @if($villa->images->count() > 0)
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Gambar Saat Ini</label>
-                        <div class="grid grid-cols-3 gap-4" id="current-images">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="current-images">
                             @foreach($villa->images as $image)
                             <div class="relative group cursor-pointer" data-image-id="{{ $image->id }}" onclick="setExistingPrimary(this, {{ $image->id }})">
                                 <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
-                                    @if(file_exists(public_path('storage/' . $image->image_path)))
-                                        <img src="{{ asset('storage/' . $image->image_path) }}" alt="Villa image" class="w-full h-full object-cover">
-                                    @else
-                                        <div class="w-full h-full bg-gray-300 flex items-center justify-center">
-                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                        </div>
-                                    @endif
+                                    <img src="{{ $image->url }}" alt="Gambar {{ $villa->name }}" class="w-full h-full object-cover">
                                 </div>
                                 <span class="absolute -top-2 -right-2 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center {{ $image->is_primary ? '' : 'hidden' }}" data-badge>
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -173,7 +165,7 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Tambah Gambar Baru</label>
                         
                         <!-- New Images Preview Container -->
-                        <div id="image-preview-container" class="grid grid-cols-3 gap-4 mb-4"></div>
+                        <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4"></div>
                         <input type="hidden" name="primary_image_index" id="primary_image_index" value="-1">
                         
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
@@ -183,7 +175,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                 </svg>
                                 <p class="text-gray-600">Klik untuk menambah gambar villa</p>
-                                <p class="text-sm text-gray-400 mt-1">JPEG, PNG, JPG (maks 2MB per file)</p>
+                                <p class="text-sm text-gray-400 mt-1">JPEG, PNG, JPG, WEBP (maks 4MB per file)</p>
                             </label>
                         </div>
                         @error('images.*')
@@ -241,7 +233,7 @@
     });
 
     document.getElementById('image-upload').addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files).filter(isValidImage);
         newFileInputs = newFileInputs.concat(files);
         
         const previewContainer = document.getElementById('image-preview-container');
@@ -387,6 +379,13 @@
         newFileInputs.forEach(file => dt.items.add(file));
         fileInput.files = dt.files;
         document.getElementById('primary_image_index').value = newPrimaryIndex;
+    }
+
+    function isValidImage(file) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const maxSize = 4 * 1024 * 1024;
+
+        return allowedTypes.includes(file.type) && file.size <= maxSize;
     }
 </script>
 @endsection

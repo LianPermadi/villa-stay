@@ -66,18 +66,7 @@
         <div class="grid lg:grid-cols-2 gap-12">
             <div class="animate-in">
                  <div class="h-64 relative overflow-hidden rounded-2xl mb-4">
-                     @php
-                         $primaryImage = $villa->images->where('is_primary', true)->first();
-                     @endphp
-                     @if($primaryImage && file_exists(public_path('storage/' . $primaryImage->image_path)))
-                         <img src="{{ asset('storage/' . $primaryImage->image_path) }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
-                     @else
-                         <div class="w-full h-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                             <svg class="w-16 h-16 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                             </svg>
-                         </div>
-                     @endif
+                     <img src="{{ $villa->primary_image_url }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
                  </div>
                 <h2 class="font-display text-3xl font-bold text-primary mb-2">{{ $villa->name }}</h2>
                 <p class="text-gray-600 mb-4">{{ $villa->description }}</p>

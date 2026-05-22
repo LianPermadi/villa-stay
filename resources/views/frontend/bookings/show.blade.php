@@ -109,19 +109,8 @@
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Informasi Villa</h2>
                     <div class="flex gap-4">
-                        @php
-                            $villaImage = $booking->villa->primaryImage;
-                        @endphp
                         <div class="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                            @if($villaImage && file_exists(public_path('storage/' . $villaImage->image_path)))
-                                <img src="{{ asset('storage/' . $villaImage->image_path) }}" alt="{{ $booking->villa->name }}" class="w-full h-full object-cover">
-                            @else
-                                <div class="w-full h-full bg-gray-200 flex items-center justify-center">
-                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                            @endif
+                            <img src="{{ $booking->villa->primary_image_url }}" alt="{{ $booking->villa->name }}" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <h3 class="font-semibold text-lg text-primary">{{ $booking->villa->name }}</h3>
@@ -190,13 +179,16 @@
                             $dpPayment = $booking->payments->where('payment_type', 'down_payment')->first();
                             $finalPayment = $booking->payments->where('payment_type', 'final_payment')->first();
                             $pendingApproval = $booking->payments->where('status', 'pending')->whereNotNull('proof_image')->first();
+                            $isFullPaymentBooking = (float) $booking->remaining_amount <= 0;
                             // Determine which payments are still needed
-                            $needDP = !$dpPayment || $dpPayment->status !== 'verified';
-                            $rawNeedFinal = $dpPayment && $dpPayment->status === 'verified' && ($booking->remaining_amount > 0) && (!$finalPayment || $finalPayment->status !== 'verified');
+                            $needDP = !$isFullPaymentBooking && (!$dpPayment || $dpPayment->status !== 'verified');
+                            $rawNeedFinal = $isFullPaymentBooking
+                                ? (!$finalPayment || $finalPayment->status !== 'verified')
+                                : ($dpPayment && $dpPayment->status === 'verified' && ($booking->remaining_amount > 0) && (!$finalPayment || $finalPayment->status !== 'verified'));
                             $finalPaymentStartDate = \Carbon\Carbon::parse($booking->check_in)->subDays(7)->startOfDay();
                             $finalPaymentEndDate = \Carbon\Carbon::parse($booking->check_in)->subDay()->endOfDay();
                             $now = \Carbon\Carbon::now();
-                            $canPayFinalNow = $rawNeedFinal && $now->betweenIncluded($finalPaymentStartDate, $finalPaymentEndDate);
+                            $canPayFinalNow = $isFullPaymentBooking || ($rawNeedFinal && $now->betweenIncluded($finalPaymentStartDate, $finalPaymentEndDate));
                             $needFinal = $rawNeedFinal && $canPayFinalNow;
                             $canUpload = !$pendingApproval && ($needDP || $needFinal);
                         @endphp
@@ -233,25 +225,68 @@
                         @if($canUpload)
                             <form action="{{ route('bookings.upload_payment', $booking) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
+                                <div class="mb-5 rounded-2xl border border-primary/15 bg-primary/5 p-5">
+                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p class="text-sm font-semibold uppercase tracking-wide text-secondary">Rekening Tujuan Transfer</p>
+                                            @if($adminPaymentAccount)
+                                                <h3 class="mt-1 font-display text-2xl font-bold text-primary">{{ $adminPaymentAccount->bank_name }}</h3>
+                                                <p class="text-sm text-gray-600">Atas nama {{ $adminPaymentAccount->bank_account_holder }}</p>
+                                            @else
+                                                <h3 class="mt-1 font-display text-xl font-bold text-red-700">Rekening admin belum tersedia</h3>
+                                                <p class="text-sm text-gray-600">Silakan hubungi admin sebelum melakukan transfer bank.</p>
+                                            @endif
+                                        </div>
+
+                                        @if($adminPaymentAccount)
+                                        <div class="rounded-xl bg-white p-4 text-left shadow-sm sm:min-w-64">
+                                            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nomor Rekening</span>
+                                            <div class="mt-1 flex items-center gap-3">
+                                                <span id="admin-bank-account-number" class="font-mono text-xl font-bold text-primary">{{ $adminPaymentAccount->bank_account_number }}</span>
+                                                <button type="button" onclick="copyAdminBankAccount()" class="rounded-lg border border-primary/20 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">
+                                                    Salin
+                                                </button>
+                                            </div>
+                                        </div>
+                                        @endif
+                                    </div>
+                                    <p id="copy-bank-account-feedback" class="mt-3 hidden text-sm font-semibold text-green-700">Nomor rekening berhasil disalin.</p>
+                                </div>
+
                                 <div class="grid md:grid-cols-2 gap-4 mb-4">
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">Metode Pembayaran</label>
-                                        <select name="payment_method" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent">
+                                        <select name="payment_method" id="payment_method" required class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition">
                                             <option value="">Pilih Metode</option>
-                                            <option value="transfer_bca">Transfer BCA</option>
-                                            <option value="transfer_bni">Transfer BNI</option>
-                                            <option value="transfer_bri">Transfer BRI</option>
-                                            <option value="transfer_mandiri">Transfer Mandiri</option>
-                                            <option value="shopeepay">ShopeePay</option>
-                                            <option value="gopay">GoPay</option>
-                                            <option value="ovo">OVO</option>
-                                            <option value="other">Lainnya</option>
+                                            <optgroup label="Transfer Bank">
+                                                <option value="transfer_bca" {{ old('payment_method') === 'transfer_bca' ? 'selected' : '' }}>Transfer BCA</option>
+                                                <option value="transfer_bni" {{ old('payment_method') === 'transfer_bni' ? 'selected' : '' }}>Transfer BNI</option>
+                                                <option value="transfer_bri" {{ old('payment_method') === 'transfer_bri' ? 'selected' : '' }}>Transfer BRI</option>
+                                                <option value="transfer_mandiri" {{ old('payment_method') === 'transfer_mandiri' ? 'selected' : '' }}>Transfer Mandiri</option>
+                                            </optgroup>
+                                            <optgroup label="E-Wallet dan Lainnya">
+                                                <option value="shopeepay" {{ old('payment_method') === 'shopeepay' ? 'selected' : '' }}>ShopeePay</option>
+                                                <option value="gopay" {{ old('payment_method') === 'gopay' ? 'selected' : '' }}>GoPay</option>
+                                                <option value="ovo" {{ old('payment_method') === 'ovo' ? 'selected' : '' }}>OVO</option>
+                                                <option value="other" {{ old('payment_method') === 'other' ? 'selected' : '' }}>Lainnya</option>
+                                            </optgroup>
                                         </select>
+                                        @error('payment_method')
+                                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                        @enderror
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">No. Rekening/Transaksi</label>
-                                        <input type="text" name="transaction_id" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Contoh: 1234567890">
+                                    <div id="bank-transfer-field" class="transition-all duration-300 ease-out">
+                                        <label for="transaction_id" class="block text-sm font-semibold text-gray-700 mb-2">Nomor Rekening Transfer <span class="text-red-500">*</span></label>
+                                        <input type="text" id="transaction_id" name="transaction_id" value="{{ old('transaction_id') }}" class="w-full px-4 py-3 rounded-lg border @error('transaction_id') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:ring-primary focus:border-transparent transition" placeholder="Contoh: 1234567890">
+                                        <p class="text-xs text-gray-500 mt-1">Wajib untuk Transfer Bank. Untuk e-wallet dan metode lain, field ini otomatis disembunyikan.</p>
+                                        @error('transaction_id')
+                                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                        @enderror
                                     </div>
+                                </div>
+                                <div id="payment-method-hint" class="mb-4 hidden rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700 transition-all duration-300">
+                                    <span class="font-semibold text-primary">Metode non-transfer dipilih.</span>
+                                    Nomor rekening tidak diperlukan untuk metode ini.
                                 </div>
 
                                         <div class="mb-4">
@@ -260,19 +295,19 @@
                                                 @if($needDP)
                                                 <label class="flex items-center gap-2">
                                                     <input type="radio" name="payment_type" value="down_payment" checked class="w-4 h-4 text-primary focus:ring-primary">
-                                                    <span>
-                                                        @if($booking->remaining_amount == 0)
-                                                            Pelunasan Lengkap (Lunas) - Rp {{ number_format($booking->total_price, 0, ',', '.') }}
-                                                        @else
-                                                            Down Payment (DP) - Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}
-                                                        @endif
-                                                    </span>
+                                                    <span>Down Payment (DP) - Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}</span>
                                                 </label>
                                                 @endif
                                                 @if($needFinal)
                                                 <label class="flex items-center gap-2">
                                                     <input type="radio" name="payment_type" value="final_payment" {{ ( !$needDP && $needFinal ) ? 'checked' : '' }} class="w-4 h-4 text-primary focus:ring-primary">
-                                                    <span>Pelunasan (H-7 s/d H-1) - Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}</span>
+                                                    <span>
+                                                        @if($isFullPaymentBooking)
+                                                            Pelunasan Lengkap (100%) - Rp {{ number_format($booking->total_price, 0, ',', '.') }}
+                                                        @else
+                                                            Pelunasan (H-7 s/d H-1) - Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}
+                                                        @endif
+                                                    </span>
                                                 </label>
                                                 @endif
                                             </div>
@@ -298,6 +333,7 @@
                                         </label>
                                     </div>
                                     <!-- Image Preview -->
+                                    <p id="image-preview-error" class="mt-3 hidden text-sm font-semibold text-red-600"></p>
                                     <div id="image-preview" class="mt-4 hidden">
                                         <p class="text-sm text-gray-600 mb-2">Preview:</p>
                                         <div class="relative inline-block">
@@ -412,11 +448,11 @@
                             @if($payment->transaction_id)
                             <p class="text-sm"><strong>Transaksi:</strong> {{ $payment->transaction_id }}</p>
                             @endif
-                            @if($payment->proof_image)
                             @php
-                                $proofUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($payment->proof_image);
-                                $proofTitle = ucfirst(str_replace('_', ' ', $payment->payment_type)) . ' - ' . $payment->transaction_id;
+                                $proofUrl = $payment->proof_image_url;
+                                $proofTitle = ucfirst(str_replace('_', ' ', $payment->payment_type)) . ($payment->transaction_id ? ' - ' . $payment->transaction_id : '');
                             @endphp
+                            @if($proofUrl)
                             <div class="mt-2">
                                 <button type="button"
                                     class="js-payment-proof-trigger group w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left transition hover:border-primary hover:shadow-md"
@@ -430,6 +466,10 @@
                                         </svg>
                                     </span>
                                 </button>
+                            </div>
+                            @else
+                            <div class="mt-2 rounded-lg border border-dashed border-gray-300 bg-white/60 p-3 text-center text-xs text-gray-500">
+                                Bukti pembayaran belum tersedia
                             </div>
                             @endif
                             @if($payment->admin_notes)
@@ -512,11 +552,81 @@
          }
      });
 
+     function copyAdminBankAccount() {
+         const accountNumber = document.getElementById('admin-bank-account-number');
+         const feedback = document.getElementById('copy-bank-account-feedback');
+
+         if (!accountNumber || !navigator.clipboard) {
+             return;
+         }
+
+         navigator.clipboard.writeText(accountNumber.textContent.trim()).then(function() {
+             if (feedback) {
+                 feedback.classList.remove('hidden');
+                 window.setTimeout(function() {
+                     feedback.classList.add('hidden');
+                 }, 2500);
+             }
+         });
+     }
+
+     document.addEventListener('DOMContentLoaded', function() {
+         const paymentMethod = document.getElementById('payment_method');
+         const bankTransferField = document.getElementById('bank-transfer-field');
+         const transactionInput = document.getElementById('transaction_id');
+         const paymentMethodHint = document.getElementById('payment-method-hint');
+         const bankTransferMethods = ['transfer_bca', 'transfer_bni', 'transfer_bri', 'transfer_mandiri'];
+
+         if (!paymentMethod || !bankTransferField || !transactionInput || !paymentMethodHint) {
+             return;
+         }
+
+         function syncPaymentForm() {
+             const isBankTransfer = bankTransferMethods.includes(paymentMethod.value);
+
+             transactionInput.required = isBankTransfer;
+             transactionInput.disabled = !isBankTransfer;
+
+             if (isBankTransfer) {
+                 bankTransferField.classList.remove('hidden', 'opacity-0', 'translate-y-2');
+                 paymentMethodHint.classList.add('hidden');
+             } else {
+                 transactionInput.value = '';
+                 bankTransferField.classList.add('hidden', 'opacity-0', 'translate-y-2');
+                 paymentMethodHint.classList.toggle('hidden', !paymentMethod.value);
+             }
+         }
+
+         paymentMethod.addEventListener('change', syncPaymentForm);
+         syncPaymentForm();
+     });
+
      function previewImage(input) {
          const previewContainer = document.getElementById('image-preview');
          const previewImg = document.getElementById('preview-img');
+         const previewError = document.getElementById('image-preview-error');
+         const allowedTypes = ['image/jpeg', 'image/png'];
+         const maxSize = 2 * 1024 * 1024;
          
          if (input.files && input.files[0]) {
+             const file = input.files[0];
+
+             if (!allowedTypes.includes(file.type)) {
+                 clearImage();
+                 previewError.textContent = 'Format bukti pembayaran harus JPG, JPEG, atau PNG.';
+                 previewError.classList.remove('hidden');
+                 return;
+             }
+
+             if (file.size > maxSize) {
+                 clearImage();
+                 previewError.textContent = 'Ukuran bukti pembayaran maksimal 2MB.';
+                 previewError.classList.remove('hidden');
+                 return;
+             }
+
+             previewError.textContent = '';
+             previewError.classList.add('hidden');
              const reader = new FileReader();
              reader.onload = function(e) {
                  previewImg.src = e.target.result;
@@ -534,6 +644,11 @@
          input.value = '';
          previewImg.src = '';
          previewContainer.classList.add('hidden');
+         const previewError = document.getElementById('image-preview-error');
+         if (previewError) {
+             previewError.textContent = '';
+             previewError.classList.add('hidden');
+         }
      }
  </script>
  @endsection

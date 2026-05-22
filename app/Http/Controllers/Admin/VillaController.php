@@ -32,7 +32,8 @@ class VillaController extends Controller
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
             "amenities" => "nullable|string",
-            "images.*" => "nullable|file|mimes:jpeg,png,jpg|max:2048",
+            "images" => "nullable|array|max:10",
+            "images.*" => "nullable|image|mimes:jpeg,png,jpg,webp|max:4096",
         ]);
         
         // Parse amenities from newline-separated string to array
@@ -50,7 +51,7 @@ class VillaController extends Controller
             $primaryIndex = $request->input('primary_image_index', 0);
             foreach ($request->file("images") as $index => $image) {
                 if ($image->isValid()) {
-                    $path = $image->store("villas", "public");
+                    $path = $image->storePublicly("villa-images", "public");
                     $villa->images()->create([
                         "image_path" => $path,
                         "is_primary" => $index == $primaryIndex,
@@ -90,7 +91,8 @@ class VillaController extends Controller
             "area" => "nullable|numeric|min:0",
             "status" => "required|in:available,unavailable,maintenance",
             "amenities" => "nullable|string",
-            "images.*" => "nullable|file|mimes:jpeg,png,jpg|max:2048",
+            "images" => "nullable|array|max:10",
+            "images.*" => "nullable|image|mimes:jpeg,png,jpg,webp|max:4096",
         ]);
 
         // Parse amenities from newline-separated string to array
@@ -101,7 +103,7 @@ class VillaController extends Controller
         
         $villa->update($request->except("images", "is_featured", "amenities") + [
             "is_featured" => $request->has("is_featured"),
-            "amenities" => $amenities,
+            "amenities" => $amenities ? json_encode($amenities) : null,
         ]);
 
         // Handle existing image primary selection
@@ -120,7 +122,7 @@ class VillaController extends Controller
             
             foreach ($request->file("images") as $index => $image) {
                 if ($image->isValid()) {
-                    $path = $image->store("villas", "public");
+                    $path = $image->storePublicly("villa-images", "public");
                     
                     // Determine if this new image should be primary
                     $isPrimary = false;

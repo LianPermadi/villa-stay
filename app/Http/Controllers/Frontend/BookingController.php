@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\User;
 use App\Models\Villa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -121,7 +122,13 @@ class BookingController extends Controller
             abort(403);
         }
         $booking->load(['villa', 'payments']);
-        return view("frontend.bookings.show", compact("booking"));
+        $adminPaymentAccount = User::where('role', 'admin')
+            ->whereNotNull('bank_name')
+            ->whereNotNull('bank_account_number')
+            ->whereNotNull('bank_account_holder')
+            ->first();
+
+        return view("frontend.bookings.show", compact("booking", "adminPaymentAccount"));
     }
 
     /**
@@ -144,10 +151,25 @@ class BookingController extends Controller
             ->whereIn('status', ['pending', 'rejected'])
             ->first();
 
+        $bankTransferMethods = [
+            'transfer_bca',
+            'transfer_bni',
+            'transfer_bri',
+            'transfer_mandiri',
+        ];
+
+        $isBankTransfer = in_array($request->payment_method, $bankTransferMethods, true);
+
         // Build validation rules
         $rules = [
-            'payment_method' => 'required|string|max:255',
-            'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'payment_method' => ['required', 'string', Rule::in([
+                ...$bankTransferMethods,
+                'shopeepay',
+                'gopay',
+                'ovo',
+                'other',
+            ])],
+            'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'payment_type' => 'required|in:down_payment,final_payment',
         ];
 
@@ -160,10 +182,17 @@ class BookingController extends Controller
             $transactionIdRule->ignore($existingPayment->id);
         }
 
-        $rules['transaction_id'] = ['required', 'string', 'max:255', $transactionIdRule];
+        $rules['transaction_id'] = $isBankTransfer
+            ? ['required', 'string', 'max:255', $transactionIdRule]
+            : ['nullable'];
 
         $request->validate($rules, [
             'transaction_id.unique' => 'No. rekening/transaksi ini sudah digunakan untuk jenis pembayaran yang sama.',
+            'transaction_id.required' => 'Nomor rekening wajib diisi untuk pembayaran Transfer Bank.',
+            'proof_image.required' => 'Bukti pembayaran wajib diupload.',
+            'proof_image.image' => 'File bukti pembayaran harus berupa gambar.',
+            'proof_image.mimes' => 'Format bukti pembayaran harus JPG, JPEG, atau PNG.',
+            'proof_image.max' => 'Ukuran bukti pembayaran maksimal 2MB.',
         ]);
 
         $paymentType = $request->payment_type;
@@ -179,41 +208,52 @@ class BookingController extends Controller
 
         // Additional validations based on payment type
         if ($paymentType === 'final_payment') {
-            // Ensure DP has been verified first
-            $dpPaid = $booking->payments()
-                ->where('payment_type', 'down_payment')
-                ->where('status', 'verified')
-                ->exists();
-            if (!$dpPaid) {
-                return back()->withErrors(['payment' => 'DP belum dibayarkan. Harap lunasi DP terlebih dahulu sebelum melakukan pelunasan.']);
+            if ($booking->remaining_amount > 0) {
+                // Ensure DP has been verified first for installment bookings.
+                $dpPaid = $booking->payments()
+                    ->where('payment_type', 'down_payment')
+                    ->where('status', 'verified')
+                    ->exists();
+                if (!$dpPaid) {
+                    return back()->withErrors(['payment' => 'DP belum dibayarkan. Harap lunasi DP terlebih dahulu sebelum melakukan pelunasan.']);
+                }
             }
 
-            $now = Carbon::now();
-            $finalPaymentStartDate = Carbon::parse($booking->check_in)->subDays(7)->startOfDay();
-            $finalPaymentEndDate = Carbon::parse($booking->check_in)->subDay()->endOfDay();
+            if ($booking->remaining_amount > 0) {
+                $now = Carbon::now();
+                $finalPaymentStartDate = Carbon::parse($booking->check_in)->subDays(7)->startOfDay();
+                $finalPaymentEndDate = Carbon::parse($booking->check_in)->subDay()->endOfDay();
 
-            if ($now->lt($finalPaymentStartDate)) {
-                return back()->withErrors([
-                    'payment' => 'Pelunasan dapat dilakukan mulai H-7 check-in (' . $finalPaymentStartDate->format('d M Y') . ') sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
-                ]);
-            }
+                if ($now->lt($finalPaymentStartDate)) {
+                    return back()->withErrors([
+                        'payment' => 'Pelunasan dapat dilakukan mulai H-7 check-in (' . $finalPaymentStartDate->format('d M Y') . ') sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                    ]);
+                }
 
-            if ($now->gt($finalPaymentEndDate)) {
-                return back()->withErrors([
-                    'payment' => 'Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
-                ]);
+                if ($now->gt($finalPaymentEndDate)) {
+                    return back()->withErrors([
+                        'payment' => 'Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                    ]);
+                }
             }
         }
 
         // Handle file upload
-        $proofPath = $request->file('proof_image')->store('payment_proofs', 'public');
+        $proofPath = $request->file('proof_image')->storePublicly('payment-proofs', 'public');
 
-        $amount = ($paymentType === 'down_payment') ? $booking->down_payment_amount : $booking->remaining_amount;
+        $amount = match ($paymentType) {
+            'down_payment' => $booking->down_payment_amount,
+            'final_payment' => $booking->remaining_amount > 0 ? $booking->remaining_amount : $booking->total_price,
+        };
 
         if ($existingPayment) {
+            if ($existingPayment->proof_image) {
+                Storage::disk('public')->delete($existingPayment->proof_image);
+            }
+
             // Update existing pending payment
             $existingPayment->payment_method = $request->payment_method;
-            $existingPayment->transaction_id = $request->transaction_id;
+            $existingPayment->transaction_id = $isBankTransfer ? $request->transaction_id : null;
             $existingPayment->proof_image = $proofPath;
             $existingPayment->notes = $request->notes;
             $existingPayment->save();
@@ -222,7 +262,7 @@ class BookingController extends Controller
             $booking->payments()->create([
                 "amount" => $amount,
                 "payment_method" => $request->payment_method,
-                "transaction_id" => $request->transaction_id,
+                "transaction_id" => $isBankTransfer ? $request->transaction_id : null,
                 "proof_image" => $proofPath,
                 "status" => "pending",
                 "payment_type" => $paymentType,

@@ -125,19 +125,8 @@
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Informasi Villa</h2>
                     <div class="flex gap-4">
-                        @php
-                            $villaImage = $booking->villa->primaryImage;
-                        @endphp
                         <div class="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                            @if($villaImage && file_exists(public_path('storage/' . $villaImage->image_path)))
-                                <img src="{{ asset('storage/' . $villaImage->image_path) }}" alt="{{ $booking->villa->name }}" class="w-full h-full object-cover">
-                            @else
-                                <div class="w-full h-full bg-gray-200 flex items-center justify-center">
-                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                            @endif
+                            <img src="{{ $booking->villa->primary_image_url }}" alt="{{ $booking->villa->name }}" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <h3 class="font-semibold text-lg text-primary">{{ $booking->villa->name }}</h3>
@@ -174,34 +163,72 @@
                             </div>
                         </div>
 
-                        @if($booking->payment->payment_method)
                         <div class="border-t pt-4">
-                            <h4 class="font-medium mb-2">Detail Pembayaran</h4>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Metode</span>
-                                    <span>{{ ucfirst(str_replace('_', ' ', $booking->payment->payment_method)) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Transaction ID</span>
-                                    <span class="font-mono text-xs">{{ $booking->payment->transaction_id }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Jenis</span>
-                                    <span>{{ $booking->payment->payment_type === 'down_payment' ? 'DP' : 'Pelunasan' }}</span>
-                                </div>
-                                @if($booking->payment->proof_image)
+                            @php
+                                $isFullPaymentBooking = (float) $booking->remaining_amount <= 0;
+                                $dpPayment = $booking->payments->where('payment_type', 'down_payment')->sortByDesc('created_at')->first();
+                                $finalPayment = $booking->payments->where('payment_type', 'final_payment')->sortByDesc('created_at')->first();
+                                $paymentProofSlots = $isFullPaymentBooking
+                                    ? [[
+                                        'label' => 'Bukti Pelunasan 100%',
+                                        'amount' => $booking->total_price,
+                                        'payment' => $finalPayment ?? $dpPayment,
+                                    ]]
+                                    : [[
+                                        'label' => 'Bukti Pembayaran DP',
+                                        'amount' => $booking->down_payment_amount,
+                                        'payment' => $dpPayment,
+                                    ], [
+                                        'label' => 'Bukti Pelunasan',
+                                        'amount' => $booking->remaining_amount,
+                                        'payment' => $finalPayment,
+                                    ]];
+                            @endphp
+
+                            <h4 class="font-medium mb-3">Bukti Pembayaran</h4>
+                            <div class="grid md:grid-cols-{{ $isFullPaymentBooking ? '1' : '2' }} gap-4">
+                                @foreach($paymentProofSlots as $slot)
                                 @php
-                                    $proofUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($booking->payment->proof_image);
-                                    $proofTitle = ($booking->payment->payment_type === 'down_payment' ? 'DP' : 'Pelunasan') . ' - ' . $booking->payment->transaction_id;
+                                    $payment = $slot['payment'];
+                                    $proofUrl = $payment?->proof_image_url;
+                                    $proofTitle = $slot['label'] . ($payment?->transaction_id ? ' - ' . $payment->transaction_id : '');
+                                    $statusClass = match ($payment?->status) {
+                                        'verified' => 'bg-green-100 text-green-800',
+                                        'rejected' => 'bg-red-100 text-red-800',
+                                        'pending' => 'bg-yellow-100 text-yellow-800',
+                                        default => 'bg-gray-100 text-gray-600',
+                                    };
+                                    $statusLabel = $payment ? ucfirst($payment->status) : 'Belum upload';
                                 @endphp
-                                <div class="mt-3">
-                                    <span class="text-gray-600 block mb-2">Bukti Transfer</span>
+
+                                <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div class="mb-3 flex items-start justify-between gap-3">
+                                        <div>
+                                            <h5 class="font-semibold text-gray-900">{{ $slot['label'] }}</h5>
+                                            <p class="text-sm text-primary font-bold">Rp {{ number_format($slot['amount'], 0, ',', '.') }}</p>
+                                        </div>
+                                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">{{ $statusLabel }}</span>
+                                    </div>
+
+                                    @if($payment)
+                                    <div class="mb-3 space-y-1 text-sm">
+                                        <div class="flex justify-between gap-3">
+                                            <span class="text-gray-600">Metode</span>
+                                            <span class="text-right">{{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-3">
+                                            <span class="text-gray-600">Transaksi</span>
+                                            <span class="font-mono text-xs text-right">{{ $payment->transaction_id ?? '-' }}</span>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($proofUrl)
                                     <button type="button"
-                                        class="js-payment-proof-trigger group w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-white text-left transition hover:border-primary hover:shadow-md"
+                                        class="js-payment-proof-trigger group w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left transition hover:border-primary hover:shadow-md"
                                         data-proof-url="{{ $proofUrl }}"
                                         data-proof-title="{{ $proofTitle }}">
-                                        <img src="{{ $proofUrl }}" alt="Bukti pembayaran {{ $booking->payment->transaction_id }}" class="h-48 w-full object-cover transition duration-300 group-hover:scale-105">
+                                        <img src="{{ $proofUrl }}" alt="{{ $slot['label'] }}" class="h-44 w-full object-cover transition duration-300 group-hover:scale-105">
                                         <span class="flex items-center justify-between px-3 py-2 text-xs font-semibold text-primary">
                                             Klik untuk memperbesar bukti pembayaran
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,16 +236,21 @@
                                             </svg>
                                         </span>
                                     </button>
+                                    @else
+                                    <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-500">
+                                        Bukti pembayaran belum tersedia
+                                    </div>
+                                    @endif
+
+                                    @if($payment?->admin_notes)
+                                    <div class="mt-3 p-2 bg-gray-50 rounded text-xs">
+                                        <strong>Catatan Admin:</strong> {{ $payment->admin_notes }}
+                                    </div>
+                                    @endif
                                 </div>
-                                @endif
-                                @if($booking->payment->admin_notes)
-                                <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                    <strong>Catatan Admin:</strong> {{ $booking->payment->admin_notes }}
-                                </div>
-                                @endif
+                                @endforeach
                             </div>
                         </div>
-                        @endif
                     </div>
                     @else
                     <div class="text-gray-500 text-center py-8">

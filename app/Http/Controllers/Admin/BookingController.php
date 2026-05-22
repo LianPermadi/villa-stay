@@ -68,7 +68,7 @@ class BookingController extends Controller
         }
 
         // Additional validation: if verifying final payment, ensure DP has been verified first
-        if ($payment->payment_type === 'final_payment') {
+        if ($payment->payment_type === 'final_payment' && $booking->remaining_amount > 0) {
             $dpPaid = $booking->payments()
                 ->where('payment_type', 'down_payment')
                 ->where('status', 'verified')

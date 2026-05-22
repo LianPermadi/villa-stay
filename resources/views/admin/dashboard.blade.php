@@ -2,6 +2,20 @@
 
 @section("title", "Dashboard Admin - VilaStay")
 
+@section("styles")
+<style>
+    .analytics-panel {
+        background:
+            linear-gradient(135deg, rgba(45, 90, 39, 0.08), rgba(201, 169, 98, 0.11)),
+            #ffffff;
+    }
+
+    .analytics-input {
+        background: rgba(255, 255, 255, 0.92);
+    }
+</style>
+@endsection
+
 @section("content")
 <div class="py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -85,18 +99,7 @@
                 @foreach($recentVillas as $villa)
                 <div class="border rounded-xl overflow-hidden hover:shadow-lg transition">
                     <div class="h-24 relative bg-gray-100">
-                        @php
-                            $primaryImage = $villa->images->where('is_primary', true)->first();
-                        @endphp
-                        @if($primaryImage && file_exists(public_path('storage/' . $primaryImage->image_path)))
-                            <img src="{{ asset('storage/' . $primaryImage->image_path) }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
-                        @else
-                            <div class="w-full h-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                                <svg class="w-8 h-8 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                            </div>
-                        @endif
+                        <img src="{{ $villa->primary_image_url }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
                         <span class="absolute top-2 right-2 badge 
                             {{ $villa->status === 'available' ? 'badge-available' : 
                                ($villa->status === 'maintenance' ? 'badge-pending' : 'badge-cancelled') }}">
@@ -171,11 +174,128 @@
             </div>
         </div>
         
-        <!-- Revenue Chart -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-            <h2 class="font-display text-2xl font-bold text-primary mb-6">Grafik Pendapatan</h2>
-            <div class="h-80">
-                <canvas id="revenueChart"></canvas>
+        <!-- Analytics Filters and Charts -->
+        <div class="analytics-panel rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-secondary">Revenue Analytics</p>
+                    <h2 class="font-display text-3xl font-bold text-primary mt-1">Grafik Pendapatan & Prediksi</h2>
+                    <p class="text-gray-600 mt-1">Filter data pendapatan dan prediksi Moving Average berdasarkan periode atau villa.</p>
+                </div>
+
+                @if(request()->hasAny(['month', 'year', 'date_from', 'date_to', 'villa_id']))
+                <a href="{{ route('admin.dashboard') }}" class="btn-secondary text-sm text-center">
+                    Reset Filter
+                </a>
+                @endif
+            </div>
+
+            <form id="analytics-filter-form" action="{{ route('admin.dashboard') }}" method="GET" class="grid md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bulan</label>
+                    <select name="month" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                        <option value="">Semua Bulan</option>
+                        @foreach([
+                            1 => 'Januari',
+                            2 => 'Februari',
+                            3 => 'Maret',
+                            4 => 'April',
+                            5 => 'Mei',
+                            6 => 'Juni',
+                            7 => 'Juli',
+                            8 => 'Agustus',
+                            9 => 'September',
+                            10 => 'Oktober',
+                            11 => 'November',
+                            12 => 'Desember',
+                        ] as $monthValue => $monthLabel)
+                        <option value="{{ $monthValue }}" {{ (string) $filters['month'] === (string) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tahun</label>
+                    <select name="year" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                        <option value="">Semua Tahun</option>
+                        @forelse($availableYears as $year)
+                        <option value="{{ $year }}" {{ (string) $filters['year'] === (string) $year ? 'selected' : '' }}>{{ $year }}</option>
+                        @empty
+                        <option value="{{ now()->year }}" {{ (string) $filters['year'] === (string) now()->year ? 'selected' : '' }}>{{ now()->year }}</option>
+                        @endforelse
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dari Tanggal</label>
+                    <input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Sampai Tanggal</label>
+                    <input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Villa</label>
+                    <select name="villa_id" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                        <option value="">Semua Villa</option>
+                        @foreach($villas as $villa)
+                        <option value="{{ $villa->id }}" {{ (string) $filters['villa_id'] === (string) $villa->id ? 'selected' : '' }}>{{ $villa->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
+                    <p class="text-sm font-semibold text-gray-500">Total Pendapatan Filter</p>
+                    <p class="mt-2 text-3xl font-bold text-primary">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
+                </div>
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
+                    <p class="text-sm font-semibold text-gray-500">Transaksi Terfilter</p>
+                    <p class="mt-2 text-3xl font-bold text-primary">{{ $filteredTransactions }}</p>
+                </div>
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
+                    <p class="text-sm font-semibold text-gray-500">Rata-rata Transaksi</p>
+                    <p class="mt-2 text-3xl font-bold text-primary">Rp {{ number_format($averageRevenue, 0, ',', '.') }}</p>
+                </div>
+            </div>
+
+            <div class="grid xl:grid-cols-2 gap-6">
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="font-display text-xl font-bold text-primary">Grafik Pendapatan</h3>
+                            <p class="text-sm text-gray-500">Pendapatan bulanan sesuai filter.</p>
+                        </div>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
+                        <div>
+                            <h3 class="font-display text-xl font-bold text-primary">Prediksi Moving Average</h3>
+                            <p class="text-sm text-gray-500">Prediksi memakai rata-rata {{ $movingAverageData['window'] }} periode terakhir dari data terfilter.</p>
+                        </div>
+                        <div class="rounded-xl bg-primary/5 px-4 py-3 text-sm">
+                            <span class="block text-gray-500">Prediksi berikutnya</span>
+                            <span class="font-bold text-primary">
+                                @if($nextPrediction['value'] !== null)
+                                    {{ $nextPrediction['period'] }} - Rp {{ number_format($nextPrediction['value'], 0, ',', '.') }}
+                                @else
+                                    Belum cukup data
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="movingAverageChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -186,6 +306,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        const filterForm = document.getElementById("analytics-filter-form");
+        let submitTimer = null;
+
+        filterForm.querySelectorAll("select, input[type=date]").forEach(function(input) {
+            input.addEventListener("change", function() {
+                window.clearTimeout(submitTimer);
+                submitTimer = window.setTimeout(function() {
+                    filterForm.submit();
+                }, 250);
+            });
+        });
+
+        const formatRupiah = function(value) {
+            return "Rp " + Number(value || 0).toLocaleString("id-ID");
+        };
+
         const ctx = document.getElementById("revenueChart").getContext("2d");
         const revenueData = @json($monthlyRevenue);
         
@@ -199,20 +335,121 @@
                 datasets: [{
                     label: "Pendapatan (Rp)",
                     data: data,
-                    backgroundColor: "rgba(45, 90, 39, 0.7)",
+                    backgroundColor: "rgba(45, 90, 39, 0.78)",
                     borderColor: "rgba(45, 90, 39, 1)",
-                    borderWidth: 1
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    hoverBackgroundColor: "rgba(201, 169, 98, 0.85)"
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1100,
+                    easing: "easeOutQuart"
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return "Pendapatan: " + formatRupiah(context.parsed.y);
+                            }
+                        }
+                    }
+                },
                 scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return "Rp " + value.toLocaleString("id-ID");
+                                return formatRupiah(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const movingAverageData = @json($movingAverageData);
+        const movingAverageCtx = document.getElementById("movingAverageChart").getContext("2d");
+
+        new Chart(movingAverageCtx, {
+            type: "line",
+            data: {
+                labels: movingAverageData.labels,
+                datasets: [
+                    {
+                        label: "Pendapatan Aktual",
+                        data: movingAverageData.actual,
+                        borderColor: "rgba(45, 90, 39, 1)",
+                        backgroundColor: "rgba(45, 90, 39, 0.12)",
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.35
+                    },
+                    {
+                        label: "Prediksi Moving Average",
+                        data: movingAverageData.predicted,
+                        borderColor: "rgba(201, 169, 98, 1)",
+                        backgroundColor: "rgba(201, 169, 98, 0.12)",
+                        borderWidth: 3,
+                        borderDash: [8, 6],
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        fill: false,
+                        tension: 0.35
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1200,
+                    easing: "easeOutQuart"
+                },
+                interaction: {
+                    intersect: false,
+                    mode: "index"
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ": " + formatRupiah(context.parsed.y);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatRupiah(value);
                             }
                         }
                     }

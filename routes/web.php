@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/villa-images/{villaImage}', [\App\Http\Controllers\PublicVillaImageController::class, 'show'])
+    ->name('villa-images.show');
+
 // Frontend Routes
 Route::get("/", [\App\Http\Controllers\Frontend\HomeController::class, "index"])->name("home");
 
@@ -11,6 +14,8 @@ Route::get("/villas/{id}", [\App\Http\Controllers\Frontend\VillaController::clas
 
 // Booking Routes
 Route::middleware(["auth"])->group(function () {
+    Route::get("/payment-proofs/{payment}", [\App\Http\Controllers\PublicPaymentProofController::class, "show"])->name("payment-proofs.show");
+
     Route::get("/bookings/create/{villaId}", [\App\Http\Controllers\Frontend\BookingController::class, "create"])->name("bookings.create");
     Route::post("/bookings/{villaId}", [\App\Http\Controllers\Frontend\BookingController::class, "store"])->name("bookings.store");
     Route::get("/bookings", [\App\Http\Controllers\Frontend\BookingController::class, "index"])->name("bookings.index");
@@ -23,6 +28,7 @@ Route::middleware(["auth"])->group(function () {
 Route::middleware(["auth"])->group(function () {
     Route::get("/profile", [\App\Http\Controllers\Frontend\UserController::class, "profile"])->name("profile");
     Route::post("/profile", [\App\Http\Controllers\Frontend\UserController::class, "update"])->name("profile.update");
+    Route::put("/profile", [\App\Http\Controllers\Frontend\UserController::class, "update"]);
 });
 
 // Admin Routes

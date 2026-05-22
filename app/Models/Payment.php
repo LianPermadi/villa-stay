@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Payment extends Model
 {
@@ -28,5 +29,15 @@ class Payment extends Model
     public function booking()
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    public function getProofImageExistsAttribute()
+    {
+        return $this->proof_image && Storage::disk('public')->exists($this->proof_image);
+    }
+
+    public function getProofImageUrlAttribute()
+    {
+        return $this->proof_image_exists ? route('payment-proofs.show', $this) : null;
     }
 }

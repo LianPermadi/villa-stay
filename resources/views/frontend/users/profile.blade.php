@@ -60,6 +60,14 @@
                             </svg>
                             Pengaturan
                         </a>
+                        @if(Auth::user()->isAdmin())
+                        <a href="#bank-account" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            Rekening Transfer
+                        </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -117,6 +125,54 @@
                                 class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition" 
                                 placeholder="Masukkan alamat lengkap Anda...">{{ old('address', Auth::user()->address) }}</textarea>
                         </div>
+
+                        @if(Auth::user()->isAdmin())
+                        <div id="bank-account" class="rounded-2xl border border-primary/15 bg-primary/5 p-6">
+                            <div class="mb-5 flex items-start gap-3">
+                                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-xl font-bold text-primary">Rekening Tujuan Pembayaran</h3>
+                                    <p class="text-sm text-gray-600">Rekening ini akan ditampilkan ke penyewa saat upload bukti DP atau pelunasan transfer bank.</p>
+                                </div>
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Bank</label>
+                                    <input type="text" name="bank_name" value="{{ old('bank_name', Auth::user()->bank_name) }}"
+                                        class="w-full px-4 py-3 rounded-xl border @error('bank_name') border-red-500 @else border-gray-300 @enderror bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                                        placeholder="Contoh: BCA">
+                                    @error('bank_name')
+                                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor Rekening</label>
+                                    <input type="text" name="bank_account_number" value="{{ old('bank_account_number', Auth::user()->bank_account_number) }}"
+                                        class="w-full px-4 py-3 rounded-xl border @error('bank_account_number') border-red-500 @else border-gray-300 @enderror bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                                        placeholder="Contoh: 1234567890">
+                                    @error('bank_account_number')
+                                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Pemilik Rekening</label>
+                                    <input type="text" name="bank_account_holder" value="{{ old('bank_account_holder', Auth::user()->bank_account_holder) }}"
+                                        class="w-full px-4 py-3 rounded-xl border @error('bank_account_holder') border-red-500 @else border-gray-300 @enderror bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                                        placeholder="Contoh: VilaStay Indonesia">
+                                    @error('bank_account_holder')
+                                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         
                         <div class="flex justify-end pt-4">
                             <button type="submit" class="btn-primary px-8 py-3 rounded-xl font-semibold">

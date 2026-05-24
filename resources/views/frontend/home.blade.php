@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Beranda - VilaStay")
+@section("title", "Beranda - Villa-Sina")
 
 @section("content")
 <!-- Hero Section -->
@@ -25,7 +25,7 @@
 <section class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 animate-in">
-            <h2 class="font-display text-4xl font-bold text-primary mb-4">Kenapa Memilih VilaStay?</h2>
+            <h2 class="font-display text-4xl font-bold text-primary mb-4">Kenapa Memilih Villa-Sina?</h2>
             <p class="text-gray-600 max-w-2xl mx-auto">
                 Kami berkomitmen memberikan pengalaman menginap terbaik dengan fasilitas premium dan pelayanan ramah
             </p>

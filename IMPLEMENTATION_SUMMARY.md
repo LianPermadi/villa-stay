@@ -1,7 +1,7 @@
-# VilaStay - Implementation Summary
+# Villa-Sina - Implementation Summary
 
 ## Project Overview
-VilaStay is a modern web application for booking villa accommodations in a single villa complex. Built with Laravel 12, featuring premium UI/UX design.
+Villa-Sina is a modern web application for booking villa accommodations in a single villa complex. Built with Laravel 12, featuring premium UI/UX design.
 
 ## Features Implemented
 
@@ -48,7 +48,7 @@ VilaStay is a modern web application for booking villa accommodations in a singl
 5. php artisan serve
 
 ## Test Accounts
-- Admin: admin@vila-stay.com / password
+- Admin: admin@villa-sina.com / password
 - User: john@example.com / password
 
 ## Moving Average

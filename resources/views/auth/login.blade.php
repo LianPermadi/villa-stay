@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Masuk - VilaStay")
+@section("title", "Masuk - Villa-Sina")
 
 @section("content")
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -15,9 +15,19 @@
             <p class="mt-2 text-sm text-gray-600">Pengalaman menginap premium menanti Anda</p>
         </div>
         
-        @if(session("error"))
-        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {{ session("error") }}
+        @if(session("error") || $errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <div>
+                    <p class="font-semibold">Login gagal</p>
+                    <p class="text-sm mt-1">
+                        {{ session("error") ?? $errors->first("login") ?? $errors->first() }}
+                    </p>
+                </div>
+            </div>
         </div>
         @endif
         
@@ -27,7 +37,7 @@
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
                     <label for="email" class="sr-only">Email</label>
-                    <input id="email" name="email" type="email" required 
+                    <input id="email" name="email" type="email" required value="{{ old("email") }}"
                         class="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition" 
                         placeholder="Email">
                 </div>
@@ -41,7 +51,7 @@
             
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <input id="remember" name="remember" type="checkbox" 
+                    <input id="remember" name="remember" type="checkbox" {{ old("remember") ? "checked" : "" }}
                         class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
                     <label for="remember" class="ml-2 block text-sm text-gray-900">Ingat saya</label>
                 </div>

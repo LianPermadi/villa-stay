@@ -8,5 +8,5 @@
   <path d="M420 560V430L600 300L780 430V560" stroke="#2D5A27" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M510 560V470H690V560" stroke="#2D5A27" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M370 430L600 260L830 430" stroke="#2D5A27" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="600" y="700" text-anchor="middle" fill="#2D5A27" font-family="Arial, sans-serif" font-size="42" font-weight="700">VilaStay</text>
+  <text x="600" y="700" text-anchor="middle" fill="#2D5A27" font-family="Arial, sans-serif" font-size="42" font-weight="700">Villa-Sina</text>
 </svg>

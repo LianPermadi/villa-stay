@@ -24,14 +24,14 @@ class BookingController extends Controller
         $baseQuery = Booking::with(['villa', 'user', 'payment']);
 
         $approvedBookings = (clone $baseQuery)
-            ->where('payment_status', 'fully_paid')
+            ->whereIn('payment_status', ['fully_paid', 'refunded'])
             ->whereDate('check_in', '>=', $approvedFrom)
             ->whereDate('check_in', '<=', $approvedTo)
             ->latest()
             ->get();
 
         $unapprovedBookings = (clone $baseQuery)
-            ->where('payment_status', '!=', 'fully_paid')
+            ->whereNotIn('payment_status', ['fully_paid', 'refunded'])
             ->latest()
             ->get();
 
@@ -124,6 +124,10 @@ class BookingController extends Controller
             return back()->withErrors(['payment' => 'Pembayaran sudah ditolak']);
         }
 
+        if ($request->refund_type === 'partial' && ! $request->filled('refund_amount')) {
+            return back()->withErrors(['refund_amount' => 'Nominal pengembalian parsial wajib diisi.'])->withInput();
+        }
+
         $payment->status = 'rejected';
         $payment->admin_notes = $request->rejection_reason;
         $payment->save();
@@ -171,11 +175,14 @@ class BookingController extends Controller
         $request->validate([
             'refund_amount' => 'required|numeric|min:0',
             'admin_notes' => 'nullable|string|max:1000',
+            'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($booking->refund_status !== 'pending') {
             return back()->withErrors(['refund' => 'Tidak ada refund yang sedang diproses']);
         }
+
+        $proofPath = $request->file('proof_image')->storePublicly('refund-proofs', 'public');
 
         // Update refund payment to completed
         $refundPayment = $booking->payments()
@@ -184,13 +191,21 @@ class BookingController extends Controller
             ->first();
 
         if ($refundPayment) {
+            if ($refundPayment->proof_image) {
+                Storage::disk('public')->delete($refundPayment->proof_image);
+            }
+
+            $refundPayment->amount = -abs($request->refund_amount);
             $refundPayment->status = 'verified';
+            $refundPayment->proof_image = $proofPath;
             $refundPayment->admin_notes = $request->admin_notes;
             $refundPayment->save();
         }
 
         $booking->refund_status = 'completed';
         $booking->refund_date = now();
+        $booking->payment_status = 'refunded';
+        $booking->status = 'completed';
         $booking->save();
 
         return redirect()->route("admin.bookings.show", $booking)->with("success", "Pengembalian dana berhasil diproses!");

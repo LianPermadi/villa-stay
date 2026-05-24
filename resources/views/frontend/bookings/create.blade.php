@@ -258,7 +258,7 @@
                         </button>
                         
                         <p class="text-xs text-gray-500 text-center mt-3">
-                            Dengan membuat booking, Anda menyetujui syarat &amp; ketentuan VilaStay
+                            Dengan membuat booking, Anda menyetujui syarat &amp; ketentuan Villa-Sina
                         </p>
                     </form>
                 </div>

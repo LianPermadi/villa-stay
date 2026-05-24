@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Profil Pengguna - VilaStay")
+@section("title", "Profil Pengguna - Villa-Sina")
 
 @section("content")
 <div class="py-16 bg-gray-50">
@@ -60,14 +60,12 @@
                             </svg>
                             Pengaturan
                         </a>
-                        @if(Auth::user()->isAdmin())
                         <a href="#bank-account" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                             </svg>
                             Rekening Transfer
                         </a>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -126,7 +124,6 @@
                                 placeholder="Masukkan alamat lengkap Anda...">{{ old('address', Auth::user()->address) }}</textarea>
                         </div>
 
-                        @if(Auth::user()->isAdmin())
                         <div id="bank-account" class="rounded-2xl border border-primary/15 bg-primary/5 p-6">
                             <div class="mb-5 flex items-start gap-3">
                                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
@@ -135,8 +132,16 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="font-display text-xl font-bold text-primary">Rekening Tujuan Pembayaran</h3>
-                                    <p class="text-sm text-gray-600">Rekening ini akan ditampilkan ke penyewa saat upload bukti DP atau pelunasan transfer bank.</p>
+                                    <h3 class="font-display text-xl font-bold text-primary">
+                                        {{ Auth::user()->isAdmin() ? 'Rekening Tujuan Pembayaran' : 'Rekening Pengembalian Dana' }}
+                                    </h3>
+                                    <p class="text-sm text-gray-600">
+                                        @if(Auth::user()->isAdmin())
+                                            Rekening ini akan ditampilkan ke penyewa saat upload bukti DP atau pelunasan transfer bank.
+                                        @else
+                                            Rekening ini akan ditampilkan ke admin saat ada proses pengembalian dana booking.
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
 
@@ -165,14 +170,13 @@
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Pemilik Rekening</label>
                                     <input type="text" name="bank_account_holder" value="{{ old('bank_account_holder', Auth::user()->bank_account_holder) }}"
                                         class="w-full px-4 py-3 rounded-xl border @error('bank_account_holder') border-red-500 @else border-gray-300 @enderror bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                                        placeholder="Contoh: VilaStay Indonesia">
+                                        placeholder="Contoh: Villa-Sina Indonesia">
                                     @error('bank_account_holder')
                                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
                         </div>
-                        @endif
                         
                         <div class="flex justify-end pt-4">
                             <button type="submit" class="btn-primary px-8 py-3 rounded-xl font-semibold">

@@ -102,14 +102,14 @@ class BookingController extends Controller
             }]);
 
         $approvedBookings = (clone $baseQuery)
-            ->where('payment_status', 'fully_paid')
+            ->whereIn('payment_status', ['fully_paid', 'refunded'])
             ->whereDate('check_in', '>=', $approvedFrom)
             ->whereDate('check_in', '<=', $approvedTo)
             ->latest()
             ->get();
 
         $unapprovedBookings = (clone $baseQuery)
-            ->where('payment_status', '!=', 'fully_paid')
+            ->whereNotIn('payment_status', ['fully_paid', 'refunded'])
             ->latest()
             ->get();
 

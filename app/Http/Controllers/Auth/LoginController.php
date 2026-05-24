@@ -30,7 +30,9 @@ class LoginController extends Controller
             return redirect()->route("home");
         }
         
-        return back()->withErrors(["email" => "Email atau password salah"]);
+        return back()
+            ->withInput($request->only("email", "remember"))
+            ->withErrors(["login" => "Email atau password salah. Silakan periksa kembali data login Anda."]);
     }
     
     public function logout(Request $request)

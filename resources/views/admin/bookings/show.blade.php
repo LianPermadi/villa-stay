@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Detail Booking - Admin - VilaStay")
+@section("title", "Detail Booking - Admin - Villa-Sina")
 
 @section("content")
 <div class="py-8">
@@ -30,8 +30,36 @@
             </div>
         </div>
 
+        @if(session('success'))
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+            {{ session('success') }}
+        </div>
+        @endif
+
+        @if($errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <ul class="list-disc list-inside">
+                @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        @php
+            $pendingCustomerPayment = $booking->payments
+                ->whereIn('payment_type', ['down_payment', 'final_payment'])
+                ->where('status', 'pending')
+                ->sortByDesc('created_at')
+                ->first();
+            $latestCustomerPayment = $booking->payments
+                ->whereIn('payment_type', ['down_payment', 'final_payment'])
+                ->sortByDesc('created_at')
+                ->first();
+        @endphp
+
         <!-- Payment Status Alert -->
-        @if($booking->payment && $booking->payment->status === 'pending')
+        @if($pendingCustomerPayment)
         <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -43,7 +71,7 @@
                 <div class="flex gap-2">
                     <form action="{{ route('admin.bookings.verify', $booking) }}" method="POST" onsubmit="return confirm('Verifikasi pembayaran ini?')">
                         @csrf
-                        <input type="hidden" name="payment_id" value="{{ $booking->payment->id }}">
+                        <input type="hidden" name="payment_id" value="{{ $pendingCustomerPayment->id }}">
                         <input type="hidden" name="admin_notes" value="">
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
                             Verifikasi
@@ -74,9 +102,19 @@
                     <p class="text-sm mt-1">Jumlah: Rp {{ number_format($booking->refund_amount, 0, ',', '.') }}</p>
                     <p class="text-sm">Status: <span class="font-semibold">{{ $booking->refund_status === 'completed' ? 'Sudah dibayarkan' : 'Menunggu proses' }}</span></p>
                     @if($booking->refund_status === 'pending')
-                    <form action="{{ route('admin.bookings.process_refund', $booking) }}" method="POST" class="mt-2 inline">
+                    <form action="{{ route('admin.bookings.process_refund', $booking) }}" method="POST" enctype="multipart/form-data" class="mt-4 rounded-xl border border-blue-200 bg-white/70 p-4">
                         @csrf
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Proses Pengembalian</button>
+                        <input type="hidden" name="refund_amount" value="{{ $booking->refund_amount }}">
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pengembalian <span class="text-red-500">*</span></label>
+                            <input type="file" name="proof_image" accept="image/jpeg,image/png,image/jpg" required class="block w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm">
+                            <p class="mt-1 text-xs text-blue-700">Format JPG, JPEG, atau PNG. Maksimal 2MB.</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-blue-900 mb-2">Catatan Admin (opsional)</label>
+                            <textarea name="admin_notes" rows="2" class="w-full rounded-lg border border-blue-200 px-3 py-2 text-sm" placeholder="Contoh: Refund sudah ditransfer ke rekening pemesan."></textarea>
+                        </div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Upload Bukti & Selesaikan Refund</button>
                     </form>
                     @endif
                 </div>
@@ -140,7 +178,7 @@
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Informasi Pembayaran</h2>
                     
-                    @if($booking->payment)
+                    @if($latestCustomerPayment)
                     <div class="mb-6">
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="bg-gray-50 p-3 rounded">
@@ -157,8 +195,8 @@
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <span class="text-gray-600 text-sm">Status</span>
-                                <p class="font-bold {{ $booking->payment->status === 'verified' ? 'text-green-600' : ($booking->payment->status === 'rejected' ? 'text-red-600' : 'text-yellow-600') }}">
-                                    {{ ucfirst($booking->payment->status) }}
+                                <p class="font-bold {{ $latestCustomerPayment->status === 'verified' ? 'text-green-600' : ($latestCustomerPayment->status === 'rejected' ? 'text-red-600' : 'text-yellow-600') }}">
+                                    {{ ucfirst($latestCustomerPayment->status) }}
                                 </p>
                             </div>
                         </div>
@@ -270,6 +308,21 @@
                     @if($booking->refund_amount)
                     <p class="font-semibold">Pengembalian dana: Rp {{ number_format($booking->refund_amount, 0, ',', '.') }}</p>
                     <p class="text-sm text-red-600">Status: {{ $booking->refund_status === 'completed' ? 'Sudah dibayarkan' : 'Menunggu proses' }}</p>
+                    @php
+                        $refundPayment = $booking->payments->where('payment_type', 'refund')->sortByDesc('created_at')->first();
+                        $refundProofUrl = $refundPayment?->proof_image_url;
+                    @endphp
+                    @if($refundProofUrl)
+                    <button type="button"
+                        class="js-payment-proof-trigger mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-primary shadow-sm ring-1 ring-red-100 hover:ring-primary"
+                        data-proof-url="{{ $refundProofUrl }}"
+                        data-proof-title="Bukti Pengembalian Dana Booking #{{ $booking->id }}">
+                        Lihat bukti pengembalian
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </button>
+                    @endif
                     @endif
                 </div>
                 @endif
@@ -302,6 +355,31 @@
                     </div>
                 </div>
 
+                <!-- Refund Bank Account Info -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="font-semibold text-gray-800 mb-4">Rekening Pemesan</h3>
+                    @if($booking->user?->bank_name && $booking->user?->bank_account_number && $booking->user?->bank_account_holder)
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600 text-sm">Bank</span>
+                            <p class="font-medium">{{ $booking->user->bank_name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 text-sm">Nomor Rekening</span>
+                            <p class="font-mono font-semibold text-primary">{{ $booking->user->bank_account_number }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 text-sm">Atas Nama</span>
+                            <p class="font-medium">{{ $booking->user->bank_account_holder }}</p>
+                        </div>
+                    </div>
+                    @else
+                    <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                        Nomor rekening pemesan belum tersedia di profil.
+                    </div>
+                    @endif
+                </div>
+
                 <!-- Villa Quick Info -->
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h3 class="font-semibold text-gray-800 mb-4">Ringkasan Villa</h3>
@@ -311,12 +389,12 @@
                 </div>
 
                 <!-- Payment Actions -->
-                @if($booking->payment && $booking->payment->status === 'pending')
+                @if($pendingCustomerPayment)
                 <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
                     <h3 class="font-semibold text-yellow-800 mb-4">Aksi Pembayaran</h3>
                     <form action="{{ route('admin.bookings.verify', $booking) }}" method="POST" class="mb-2">
                         @csrf
-                        <input type="hidden" name="payment_id" value="{{ $booking->payment->id }}">
+                        <input type="hidden" name="payment_id" value="{{ $pendingCustomerPayment->id }}">
                         <input type="hidden" name="admin_notes" value="">
                         <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium">
                             Verifikasi Pembayaran
@@ -349,13 +427,13 @@
 </div>
 
 <!-- Reject Modal -->
-@if($booking->payment && $booking->payment->status === 'pending')
+@if($pendingCustomerPayment)
 <div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl p-6 max-w-md mx-4">
         <h3 class="text-lg font-semibold mb-4">Tolak Pembayaran</h3>
         <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST">
             @csrf
-            <input type="hidden" name="payment_id" value="{{ $booking->payment->id }}">
+            <input type="hidden" name="payment_id" value="{{ $pendingCustomerPayment->id }}">
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Alasan Penolakan</label>
                 <textarea name="rejection_reason" rows="3" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent" required></textarea>
@@ -364,18 +442,23 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tipe Pengembalian</label>
                 <div class="space-y-2">
                     <label class="flex items-center gap-2">
-                        <input type="radio" name="refund_type" value="none" checked class="w-4 h-4">
+                        <input type="radio" name="refund_type" value="none" checked class="w-4 h-4 js-refund-type">
                         <span>Tidak ada pengembalian</span>
                     </label>
                     <label class="flex items-center gap-2">
-                        <input type="radio" name="refund_type" value="partial" class="w-4 h-4">
+                        <input type="radio" name="refund_type" value="partial" class="w-4 h-4 js-refund-type">
                         <span>Pengembalian parsial</span>
                     </label>
                     <label class="flex items-center gap-2">
-                        <input type="radio" name="refund_type" value="full" class="w-4 h-4">
+                        <input type="radio" name="refund_type" value="full" class="w-4 h-4 js-refund-type">
                         <span>Pengembalian full</span>
                     </label>
                 </div>
+            </div>
+            <div id="partialRefundAmountField" class="mb-4 hidden">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Nominal Pengembalian Parsial</label>
+                <input type="number" name="refund_amount" min="0" max="{{ $pendingCustomerPayment?->amount ?? 0 }}" step="1000" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Masukkan nominal refund">
+                <p class="mt-1 text-xs text-gray-500">Maksimal Rp {{ number_format($pendingCustomerPayment?->amount ?? 0, 0, ',', '.') }}</p>
             </div>
             <div class="flex gap-3 justify-end">
                 <button type="button" onclick="hideRejectModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Batal</button>
@@ -437,5 +520,15 @@
          rejectModal.style.display = 'none';
      }
  }
+
+ document.querySelectorAll('.js-refund-type').forEach(function(input) {
+     input.addEventListener('change', function() {
+         const partialField = document.getElementById('partialRefundAmountField');
+         if (!partialField) {
+             return;
+         }
+         partialField.classList.toggle('hidden', this.value !== 'partial');
+     });
+ });
  </script>
  @endsection

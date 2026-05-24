@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="980" viewBox="0 0 1400 980">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .system { fill: #ffffff; stroke: #334155; stroke-width: 2; }
+      .actor-line { stroke: #0f172a; stroke-width: 3; stroke-linecap: round; fill: none; }
+      .actor-text { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .title { font-family: Arial, sans-serif; font-size: 30px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 18px; fill: #475569; text-anchor: middle; }
+      .section-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .usecase { fill: #e0f2fe; stroke: #0284c7; stroke-width: 2; }
+      .usecase-admin { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; }
+      .usecase-auth { fill: #fef3c7; stroke: #d97706; stroke-width: 2; }
+      .usecase-text { font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .line { stroke: #64748b; stroke-width: 2; fill: none; }
+      .legend-text { font-family: Arial, sans-serif; font-size: 14px; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1400" height="980"/>
+  <text class="title" x="700" y="45">Use Case Diagram Aplikasi Villa-Sina</text>
+  <text class="subtitle" x="700" y="75">Sistem Informasi Booking Villa Premium</text>
+
+  <rect class="system" x="260" y="110" width="880" height="800" rx="12"/>
+  <text class="section-title" x="700" y="145">Boundary Sistem Villa-Sina</text>
+
+  <!-- Guest actor -->
+  <circle class="actor-line" cx="105" cy="230" r="25"/>
+  <path class="actor-line" d="M105 255 L105 325"/>
+  <path class="actor-line" d="M55 285 L155 285"/>
+  <path class="actor-line" d="M105 325 L65 385"/>
+  <path class="actor-line" d="M105 325 L145 385"/>
+  <text class="actor-text" x="105" y="425">Guest</text>
+
+  <!-- User actor -->
+  <circle class="actor-line" cx="105" cy="610" r="25"/>
+  <path class="actor-line" d="M105 635 L105 705"/>
+  <path class="actor-line" d="M55 665 L155 665"/>
+  <path class="actor-line" d="M105 705 L65 765"/>
+  <path class="actor-line" d="M105 705 L145 765"/>
+  <text class="actor-text" x="105" y="805">User</text>
+  <text class="actor-text" x="105" y="830">Pelanggan</text>
+
+  <!-- Admin actor -->
+  <circle class="actor-line" cx="1295" cy="500" r="25"/>
+  <path class="actor-line" d="M1295 525 L1295 595"/>
+  <path class="actor-line" d="M1245 555 L1345 555"/>
+  <path class="actor-line" d="M1295 595 L1255 655"/>
+  <path class="actor-line" d="M1295 595 L1335 655"/>
+  <text class="actor-text" x="1295" y="695">Admin</text>
+
+  <!-- Guest and auth use cases -->
+  <ellipse class="usecase" cx="420" cy="205" rx="125" ry="34"/>
+  <text class="usecase-text" x="420" y="210">Lihat Beranda</text>
+
+  <ellipse class="usecase" cx="420" cy="285" rx="125" ry="34"/>
+  <text class="usecase-text" x="420" y="290">Lihat Katalog Villa</text>
+
+  <ellipse class="usecase" cx="420" cy="365" rx="125" ry="34"/>
+  <text class="usecase-text" x="420" y="370">Lihat Detail Villa</text>
+
+  <ellipse class="usecase-auth" cx="420" cy="445" rx="125" ry="34"/>
+  <text class="usecase-text" x="420" y="450">Registrasi</text>
+
+  <ellipse class="usecase-auth" cx="420" cy="525" rx="125" ry="34"/>
+  <text class="usecase-text" x="420" y="530">Login</text>
+
+  <!-- User use cases -->
+  <ellipse class="usecase" cx="700" cy="285" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="290">Buat Booking</text>
+
+  <ellipse class="usecase" cx="700" cy="365" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="370">Cek Ketersediaan</text>
+
+  <ellipse class="usecase" cx="700" cy="445" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="450">Upload Bukti DP</text>
+
+  <ellipse class="usecase" cx="700" cy="525" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="530">Upload Pelunasan</text>
+
+  <ellipse class="usecase" cx="700" cy="605" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="610">Lihat Booking</text>
+
+  <ellipse class="usecase" cx="700" cy="685" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="690">Batalkan Booking</text>
+
+  <ellipse class="usecase" cx="700" cy="765" rx="125" ry="34"/>
+  <text class="usecase-text" x="700" y="770">Kelola Profil</text>
+
+  <!-- Admin use cases -->
+  <ellipse class="usecase-admin" cx="980" cy="205" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="210">Lihat Dashboard</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="285" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="290">Kelola Villa</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="365" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="370">Kelola Booking</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="445" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="450">Verifikasi Bayar</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="525" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="530">Tolak Bayar</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="605" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="610">Proses Refund</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="685" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="690">Update Status</text>
+
+  <ellipse class="usecase-admin" cx="980" cy="765" rx="125" ry="34"/>
+  <text class="usecase-text" x="980" y="770">Lihat Laporan</text>
+
+  <!-- Associations: Guest -->
+  <path class="line" d="M155 230 L295 205"/>
+  <path class="line" d="M155 255 L295 285"/>
+  <path class="line" d="M155 280 L295 365"/>
+  <path class="line" d="M155 305 L295 445"/>
+  <path class="line" d="M155 330 L295 525"/>
+
+  <!-- Associations: User -->
+  <path class="line" d="M155 610 L575 285"/>
+  <path class="line" d="M155 625 L575 365"/>
+  <path class="line" d="M155 640 L575 445"/>
+  <path class="line" d="M155 655 L575 525"/>
+  <path class="line" d="M155 670 L575 605"/>
+  <path class="line" d="M155 685 L575 685"/>
+  <path class="line" d="M155 700 L575 765"/>
+
+  <!-- Associations: Admin -->
+  <path class="line" d="M1245 500 L1105 205"/>
+  <path class="line" d="M1245 510 L1105 285"/>
+  <path class="line" d="M1245 520 L1105 365"/>
+  <path class="line" d="M1245 530 L1105 445"/>
+  <path class="line" d="M1245 540 L1105 525"/>
+  <path class="line" d="M1245 550 L1105 605"/>
+  <path class="line" d="M1245 560 L1105 685"/>
+  <path class="line" d="M1245 570 L1105 765"/>
+
+  <!-- Include-like relation -->
+  <path class="line" stroke-dasharray="8 6" d="M700 319 L700 331"/>
+  <text class="legend-text" x="715" y="327">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Legend -->
+  <rect x="305" y="835" width="24" height="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+  <text class="legend-text" x="340" y="848">Frontend/User</text>
+  <rect x="475" y="835" width="24" height="16" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text class="legend-text" x="510" y="848">Autentikasi</text>
+  <rect x="640" y="835" width="24" height="16" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text class="legend-text" x="675" y="848">Admin</text>
+</svg>

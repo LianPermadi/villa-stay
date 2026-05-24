@@ -1,7 +1,7 @@
-# VilaStay - Sistem Informasi Booking Villa Premium
+# Villa-Sina - Sistem Informasi Booking Villa Premium
 
-## Tentang VilaStay
-VilaStay adalah sistem informasi booking villa modern untuk mengelola penyewaan villa dalam satu kawasan komplek villa.
+## Tentang Villa-Sina
+Villa-Sina adalah sistem informasi booking villa modern untuk mengelola penyewaan villa dalam satu kawasan komplek villa.
 
 ## Fitur Utama
 - Booking villa online
@@ -21,5 +21,5 @@ VilaStay adalah sistem informasi booking villa modern untuk mengelola penyewaan 
 3. php artisan serve
 
 ## Login
-- Admin: admin@vila-stay.com / password
+- Admin: admin@villa-sina.com / password
 - User: john@example.com / password

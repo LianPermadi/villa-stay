@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Detail Booking - VilaStay")
+@section("title", "Detail Booking - Villa-Sina")
 
 @section("content")
 <div class="py-8">
@@ -390,6 +390,21 @@
                                             <span class="text-yellow-600">(Menunggu proses)</span>
                                         @endif
                                     </p>
+                                    @php
+                                        $refundPayment = $booking->payments->where('payment_type', 'refund')->sortByDesc('created_at')->first();
+                                        $refundProofUrl = $refundPayment?->proof_image_url;
+                                    @endphp
+                                    @if($refundProofUrl)
+                                    <button type="button"
+                                        class="js-payment-proof-trigger mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-primary shadow-sm ring-1 ring-green-100 hover:ring-primary"
+                                        data-proof-url="{{ $refundProofUrl }}"
+                                        data-proof-title="Bukti Pengembalian Dana Booking #{{ $booking->id }}">
+                                        Lihat bukti pengembalian dana
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </button>
+                                    @endif
                                     @endif
                                 </div>
                             </div>

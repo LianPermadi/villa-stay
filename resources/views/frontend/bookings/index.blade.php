@@ -1,13 +1,13 @@
 @extends("layouts.app")
 
-@section("title", "Riwayat Pemesanan - VilaStay")
+@section("title", "Riwayat Pemesanan - Villa-Sina")
 
 @section("content")
 <div class="py-16 bg-gray-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-12">
             <h1 class="font-display text-4xl font-bold text-primary mb-4">Riwayat Pemesanan</h1>
-            <p class="text-gray-600">Kelola pemesanan yang masih proses pembayaran dan riwayat yang sudah lunas</p>
+            <p class="text-gray-600">Kelola pemesanan yang masih proses pembayaran dan riwayat yang sudah selesai</p>
         </div>
 
         @if(session("success"))
@@ -45,8 +45,8 @@
                 <div class="px-6 py-5 border-b border-gray-100">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-primary">Selesai Approve / Lunas</h2>
-                            <p class="text-sm text-gray-500 mt-1">Riwayat pemesanan yang seluruh pembayarannya sudah diverifikasi</p>
+                            <h2 class="font-display text-2xl font-bold text-primary">Selesai</h2>
+                            <p class="text-sm text-gray-500 mt-1">Riwayat pemesanan yang sudah lunas atau pengembaliannya sudah selesai diproses</p>
                         </div>
                         <form method="GET" action="{{ route('bookings.index') }}" class="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
                             <div>
@@ -67,7 +67,7 @@
                     </div>
                 </div>
                 @if($approvedBookings->isEmpty())
-                    <div class="px-6 py-10 text-center text-gray-500">Tidak ada riwayat lunas pada rentang tanggal ini.</div>
+                    <div class="px-6 py-10 text-center text-gray-500">Tidak ada riwayat selesai pada rentang tanggal ini.</div>
                 @else
                     @include('frontend.bookings.partials.booking-table', ['bookings' => $approvedBookings, 'showStatus' => true])
                 @endif

@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Daftar Booking - Admin - VilaStay")
+@section("title", "Daftar Booking - Admin - Villa-Sina")
 
 @section("content")
 <div class="py-8">

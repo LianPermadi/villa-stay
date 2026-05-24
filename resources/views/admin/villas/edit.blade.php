@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Edit Villa - Admin - VilaStay")
+@section("title", "Edit Villa - Admin - Villa-Sina")
 
 @section("content")
 <div class="py-8">

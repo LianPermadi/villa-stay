@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield("title", "VilaStay - Booking Villa Premium")</title>
+    <title>@yield("title", "Villa-Sina - Booking Villa Premium")</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -80,7 +80,7 @@
                         <path d="M16 2L4 12V28H10V20H22V28H28V12L16 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M10 20V28H22V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span class="font-display text-xl font-bold text-primary">VilaStay</span>
+                    <span class="font-display text-xl font-bold text-primary">Villa-Sina</span>
                 </a>
                 <div class="hidden md:flex items-center gap-8">
                     <a href="{{ route("home") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Beranda</a>
@@ -114,7 +114,7 @@
                         <svg class="w-8 h-8 text-accent" viewBox="0 0 32 32" fill="none">
                             <path d="M16 2L4 12V28H10V20H22V28H28V12L16 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span class="font-display text-xl font-bold">VilaStay</span>
+                        <span class="font-display text-xl font-bold">Villa-Sina</span>
                     </div>
                     <p class="text-gray-400 text-sm">Solusi premium untuk pengalaman menginap villa terbaik di komplek wisata pilihan.</p>
                 </div>
@@ -143,7 +143,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
-                            info@vila-stay.com
+                            info@villa-sina.com
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +162,7 @@
                 </div>
             </div>
             <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
-                <p>&copy; 2026 VilaStay. Hak Cipta Dilindungi.</p>
+                <p>&copy; 2026 Villa-Sina. Hak Cipta Dilindungi.</p>
             </div>
         </div>
     </footer>

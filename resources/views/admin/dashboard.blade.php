@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@section("title", "Dashboard Admin - VilaStay")
+@section("title", "Dashboard Admin - Villa-Sina")
 
 @section("styles")
 <style>
@@ -21,7 +21,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-8">
             <h1 class="font-display text-3xl font-bold text-primary">Dashboard Admin</h1>
-            <p class="text-gray-600">Selamat datang di panel admin VilaStay</p>
+            <p class="text-gray-600">Selamat datang di panel admin Villa-Sina</p>
         </div>
         
         <!-- Stats Cards -->

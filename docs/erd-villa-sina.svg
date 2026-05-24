@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1050" viewBox="0 0 1500 1050">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font-family: Arial, sans-serif; font-size: 32px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 18px; fill: #475569; text-anchor: middle; }
+      .entity { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 8; }
+      .head { fill: #0f766e; }
+      .head2 { fill: #2563eb; }
+      .head3 { fill: #7c3aed; }
+      .head4 { fill: #ea580c; }
+      .entity-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+      .field { font-family: Consolas, "Courier New", monospace; font-size: 13px; fill: #0f172a; }
+      .pk { font-weight: 700; fill: #b91c1c; }
+      .fk { font-weight: 700; fill: #1d4ed8; }
+      .rel { stroke: #475569; stroke-width: 2.2; fill: none; }
+      .rel-label { font-family: Arial, sans-serif; font-size: 14px; fill: #334155; font-weight: 700; text-anchor: middle; }
+      .note { font-family: Arial, sans-serif; font-size: 14px; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1500" height="1050"/>
+  <text class="title" x="750" y="45">ERD Villa-Sina</text>
+  <text class="subtitle" x="750" y="75">Rancangan Relasi Database Sistem Booking Villa</text>
+
+  <!-- users -->
+  <rect class="entity" x="60" y="130" width="280" height="315"/>
+  <rect class="head" x="60" y="130" width="280" height="42" rx="8"/>
+  <text class="entity-title" x="200" y="157">users</text>
+  <text class="field pk" x="80" y="198">PK id</text>
+  <text class="field" x="80" y="222">name</text>
+  <text class="field" x="80" y="246">email (unique)</text>
+  <text class="field" x="80" y="270">password</text>
+  <text class="field" x="80" y="294">phone</text>
+  <text class="field" x="80" y="318">address</text>
+  <text class="field" x="80" y="342">role: user/admin</text>
+  <text class="field" x="80" y="366">bank_name</text>
+  <text class="field" x="80" y="390">bank_account_number</text>
+  <text class="field" x="80" y="414">bank_account_holder</text>
+
+  <!-- villas -->
+  <rect class="entity" x="610" y="130" width="310" height="390"/>
+  <rect class="head2" x="610" y="130" width="310" height="42" rx="8"/>
+  <text class="entity-title" x="765" y="157">villas</text>
+  <text class="field pk" x="630" y="198">PK id</text>
+  <text class="field" x="630" y="222">name</text>
+  <text class="field" x="630" y="246">description</text>
+  <text class="field" x="630" y="270">price_per_night</text>
+  <text class="field" x="630" y="294">capacity</text>
+  <text class="field" x="630" y="318">bedrooms</text>
+  <text class="field" x="630" y="342">bathrooms</text>
+  <text class="field" x="630" y="366">area</text>
+  <text class="field" x="630" y="390">amenities (json)</text>
+  <text class="field" x="630" y="414">status</text>
+  <text class="field" x="630" y="438">down_payment_percentage</text>
+  <text class="field" x="630" y="462">payment_due_days</text>
+  <text class="field" x="630" y="486">is_featured</text>
+
+  <!-- villa_images -->
+  <rect class="entity" x="1115" y="130" width="280" height="210"/>
+  <rect class="head3" x="1115" y="130" width="280" height="42" rx="8"/>
+  <text class="entity-title" x="1255" y="157">villa_images</text>
+  <text class="field pk" x="1135" y="198">PK id</text>
+  <text class="field fk" x="1135" y="222">FK villa_id</text>
+  <text class="field" x="1135" y="246">image_path</text>
+  <text class="field" x="1135" y="270">is_primary</text>
+  <text class="field" x="1135" y="294">sort_order</text>
+  <text class="field" x="1135" y="318">timestamps</text>
+
+  <!-- bookings -->
+  <rect class="entity" x="470" y="625" width="410" height="370"/>
+  <rect class="head4" x="470" y="625" width="410" height="42" rx="8"/>
+  <text class="entity-title" x="675" y="652">bookings</text>
+  <text class="field pk" x="490" y="692">PK id</text>
+  <text class="field fk" x="490" y="716">FK user_id</text>
+  <text class="field fk" x="490" y="740">FK villa_id</text>
+  <text class="field" x="490" y="764">check_in, check_out</text>
+  <text class="field" x="490" y="788">num_nights, num_guests</text>
+  <text class="field" x="490" y="812">total_price</text>
+  <text class="field" x="490" y="836">down_payment_amount, remaining_amount</text>
+  <text class="field" x="490" y="860">payment_status</text>
+  <text class="field" x="490" y="884">payment_due_date, is_overdue</text>
+  <text class="field" x="490" y="908">guest_name, guest_email, guest_phone</text>
+  <text class="field" x="490" y="932">status</text>
+  <text class="field" x="490" y="956">refund fields, rejection_reason</text>
+  <text class="field" x="490" y="980">timestamps</text>
+
+  <!-- payments -->
+  <rect class="entity" x="985" y="500" width="320" height="300"/>
+  <rect class="head" x="985" y="500" width="320" height="42" rx="8"/>
+  <text class="entity-title" x="1145" y="527">payments</text>
+  <text class="field pk" x="1005" y="568">PK id</text>
+  <text class="field fk" x="1005" y="592">FK booking_id</text>
+  <text class="field" x="1005" y="616">amount</text>
+  <text class="field" x="1005" y="640">payment_method</text>
+  <text class="field" x="1005" y="664">transaction_id</text>
+  <text class="field" x="1005" y="688">proof_image</text>
+  <text class="field" x="1005" y="712">status: pending/verified/rejected</text>
+  <text class="field" x="1005" y="736">payment_type: DP/final/refund</text>
+  <text class="field" x="1005" y="760">notes, admin_notes</text>
+  <text class="field" x="1005" y="784">timestamps</text>
+
+  <!-- revenues -->
+  <rect class="entity" x="95" y="620" width="290" height="215"/>
+  <rect class="head2" x="95" y="620" width="290" height="42" rx="8"/>
+  <text class="entity-title" x="240" y="647">revenues</text>
+  <text class="field pk" x="115" y="688">PK id</text>
+  <text class="field fk" x="115" y="712">FK booking_id</text>
+  <text class="field" x="115" y="736">amount</text>
+  <text class="field" x="115" y="760">revenue_date</text>
+  <text class="field" x="115" y="784">period (YYYY-MM)</text>
+  <text class="field" x="115" y="808">timestamps</text>
+
+  <!-- moving_average_results -->
+  <rect class="entity" x="1040" y="850" width="330" height="165"/>
+  <rect class="head3" x="1040" y="850" width="330" height="42" rx="8"/>
+  <text class="entity-title" x="1205" y="877">moving_average_results</text>
+  <text class="field pk" x="1060" y="918">PK id</text>
+  <text class="field" x="1060" y="942">period</text>
+  <text class="field" x="1060" y="966">actual_revenue, predicted_revenue</text>
+  <text class="field" x="1060" y="990">months_used, calculation_data</text>
+
+  <!-- Relationships -->
+  <path class="rel" d="M340 295 C420 295 420 710 470 716"/>
+  <text class="rel-label" x="395" y="500">1 : N</text>
+
+  <path class="rel" d="M765 520 L765 625"/>
+  <text class="rel-label" x="795" y="580">1 : N</text>
+
+  <path class="rel" d="M920 245 L1115 222"/>
+  <text class="rel-label" x="1015" y="220">1 : N</text>
+
+  <path class="rel" d="M880 740 C940 740 940 592 985 592"/>
+  <text class="rel-label" x="925" y="650">1 : N</text>
+
+  <path class="rel" d="M470 760 C420 760 420 712 385 712"/>
+  <text class="rel-label" x="430" y="735">1 : 0..1</text>
+
+  <path class="rel" stroke-dasharray="8 6" d="M385 760 C520 560 920 560 1040 920"/>
+  <text class="rel-label" x="720" y="570">data agregat</text>
+
+  <text class="note" x="60" y="1015">Keterangan: PK = Primary Key, FK = Foreign Key. Relasi revenue ke moving_average_results bersifat agregasi laporan, bukan foreign key langsung.</text>
+</svg>

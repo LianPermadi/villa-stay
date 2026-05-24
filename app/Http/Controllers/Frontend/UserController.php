@@ -28,11 +28,15 @@ class UserController extends Controller
         ]);
         
         $user = Auth::user();
-        $data = $request->only("name", "email", "phone", "address");
-
-        if ($user->isAdmin()) {
-            $data += $request->only("bank_name", "bank_account_number", "bank_account_holder");
-        }
+        $data = $request->only(
+            "name",
+            "email",
+            "phone",
+            "address",
+            "bank_name",
+            "bank_account_number",
+            "bank_account_holder"
+        );
 
         $user->update($data);
         

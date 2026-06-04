@@ -58,6 +58,24 @@ class Villa extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function getIsOccupiedTodayAttribute()
+    {
+        if (array_key_exists('active_booking_today_count', $this->attributes)) {
+            return (int) $this->attributes['active_booking_today_count'] > 0;
+        }
+
+        return $this->bookings()
+            ->where('status', '!=', 'cancelled')
+            ->whereDate('check_in', '<=', today())
+            ->whereDate('check_out', '>', today())
+            ->exists();
+    }
+
+    public function getOccupancyLabelAttribute()
+    {
+        return $this->is_occupied_today ? 'Terisi hari ini' : 'Kosong hari ini';
+    }
+
     public function getFormattedPriceAttribute()
     {
         return 'Rp ' . number_format($this->price_per_night, 0, ',', '.');
@@ -84,14 +102,8 @@ class Villa extends Model
     {
         $conflictingBookings = $this->bookings()
             ->where('status', '!=', 'cancelled')
-            ->where(function($query) use ($checkIn, $checkOut) {
-                $query->whereBetween('check_in', [$checkIn, $checkOut])
-                      ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                      ->orWhere(function($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in', '<=', $checkIn)
-                            ->where('check_out', '>=', $checkOut);
-                      });
-            })
+            ->whereDate('check_in', '<', $checkOut)
+            ->whereDate('check_out', '>', $checkIn)
             ->exists();
 
         return !$conflictingBookings && $this->status === 'available';

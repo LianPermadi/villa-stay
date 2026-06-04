@@ -32,6 +32,9 @@
                             {{ $villa->status }}
                         @endif
                     </span>
+                    <span class="absolute bottom-4 right-4 badge {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
+                        {{ $villa->occupancy_label }}
+                    </span>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                     @forelse($villa->images as $image)

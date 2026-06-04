@@ -66,6 +66,11 @@
                                         {{ $villa->status }}
                                     @endif
                                 </span>
+                                <div class="mt-2">
+                                    <span class="badge {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
+                                        {{ $villa->occupancy_label }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 @if($villa->is_featured)

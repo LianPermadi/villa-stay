@@ -132,10 +132,12 @@
                         <div>
                             <span class="text-gray-600 text-sm">Check-in</span>
                             <p class="font-medium">{{ \Carbon\Carbon::parse($booking->check_in)->format('d M Y') }}</p>
+                            <p class="text-xs text-gray-500">Pukul 13:00 WIB</p>
                         </div>
                         <div>
                             <span class="text-gray-600 text-sm">Check-out</span>
                             <p class="font-medium">{{ \Carbon\Carbon::parse($booking->check_out)->format('d M Y') }}</p>
+                            <p class="text-xs text-gray-500">Pukul 11:00 WIB</p>
                         </div>
                         <div>
                             <span class="text-gray-600 text-sm">Malam</span>

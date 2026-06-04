@@ -113,6 +113,9 @@
                                 {{ $villa->status }}
                             @endif
                         </span>
+                        <span class="absolute bottom-2 left-2 badge {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
+                            {{ $villa->occupancy_label }}
+                        </span>
                     </div>
                     <div class="p-4">
                         <h3 class="font-semibold text-gray-900 mb-1 text-sm">{{ $villa->name }}</h3>

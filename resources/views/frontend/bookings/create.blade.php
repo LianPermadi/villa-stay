@@ -3,6 +3,7 @@
 @section("title", "Pesan Villa - " . $villa->name)
 
 @section("styles")
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
     .payment-option {
         border: 2px solid #e5e7eb;
@@ -47,6 +48,29 @@
     .payment-badge {
         background: rgba(201, 169, 98, 0.22);
         color: var(--secondary);
+    }
+
+    .flatpickr-day.booked-date,
+    .flatpickr-day.booked-date:hover,
+    .flatpickr-day.booked-date.prevMonthDay,
+    .flatpickr-day.booked-date.nextMonthDay {
+        background: #fee2e2 !important;
+        border-color: #ef4444 !important;
+        color: #991b1b !important;
+        text-decoration: line-through;
+        opacity: 1;
+    }
+
+    .flatpickr-day.booked-date::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 4px;
+        width: 5px;
+        height: 5px;
+        border-radius: 9999px;
+        background: #dc2626;
+        transform: translateX(-50%);
     }
 </style>
 @endsection
@@ -102,16 +126,23 @@
                         <div class="grid md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Check-in</label>
-                                <input type="date" name="check_in" value="{{ old("check_in") }}" 
+                                <input type="text" id="check_in" name="check_in" value="{{ old("check_in") }}"
                                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition" 
-                                    required min="{{ date("Y-m-d", strtotime("+1 day")) }}">
+                                    required placeholder="Pilih tanggal check-in">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Check-out</label>
-                                <input type="date" name="check_out" value="{{ old("check_out") }}" 
+                                <input type="text" id="check_out" name="check_out" value="{{ old("check_out") }}"
                                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition" 
-                                    required>
+                                    required placeholder="Pilih tanggal check-out">
                             </div>
+                        </div>
+                        <p class="text-sm text-gray-500 -mt-2 mb-4">Tanggal yang sudah dipesan otomatis ditandai dan tidak bisa dipilih.</p>
+
+                        <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4 text-sm text-gray-700">
+                            <p><span class="font-semibold text-primary">Jam check-in:</span> 13:00 WIB pada tanggal check-in.</p>
+                            <p><span class="font-semibold text-primary">Jam check-out:</span> 11:00 WIB pada tanggal check-out.</p>
+                            <p class="text-gray-500 mt-1">Minimal booking 1 malam. Jika check-in 1 Januari, checkout otomatis paling cepat 2 Januari.</p>
                         </div>
                         
                         <div class="mb-4">
@@ -269,10 +300,11 @@
 @endsection
 
 @section("scripts")
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const checkInInput = document.querySelector("input[name=check_in]");
-        const checkOutInput = document.querySelector("input[name=check_out]");
+        const checkInInput = document.getElementById("check_in");
+        const checkOutInput = document.getElementById("check_out");
         const paymentPlanInputs = document.querySelectorAll("input[name=payment_plan]");
         const numNightsDisplay = document.getElementById("numNightsDisplay");
         const totalPriceDisplay = document.getElementById("totalPriceDisplay");
@@ -281,6 +313,8 @@
         const dpLabel = document.getElementById("dp-label");
         const pricePerNight = {{ $villa->price_per_night }};
         const dpPercentage = {{ $villa->down_payment_percentage }};
+        const bookedDateRanges = @json($bookedDateRanges ?? []);
+        let checkOutPicker = null;
         
         function formatRupiah(num) {
             return "Rp " + Math.round(num).toLocaleString("id-ID");
@@ -342,6 +376,89 @@
             }
         }
         
+        function parseLocalDate(value) {
+            if (value instanceof Date) {
+                return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+            }
+
+            const [year, month, day] = value.split("-").map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+
+            return `${year}-${month}-${day}`;
+        }
+
+        function nextDateString(date) {
+            const nextDate = new Date(date);
+            nextDate.setDate(nextDate.getDate() + 1);
+            return formatLocalDate(nextDate);
+        }
+
+        const checkoutDisabledRanges = bookedDateRanges.map(function(range) {
+            return {
+                from: nextDateString(parseLocalDate(range.from)),
+                to: nextDateString(parseLocalDate(range.to)),
+            };
+        });
+
+        function toDateOnly(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+        }
+
+        function isBookedDate(date) {
+            const currentDate = toDateOnly(date);
+
+            return bookedDateRanges.some(function(range) {
+                return currentDate >= toDateOnly(parseLocalDate(range.from)) && currentDate <= toDateOnly(parseLocalDate(range.to));
+            });
+        }
+
+        function markBookedDate(selectedDates, dateStr, instance, dayElement) {
+            if (isBookedDate(dayElement.dateObj)) {
+                dayElement.classList.add("booked-date");
+                dayElement.title = "Tanggal sudah dibooking";
+            }
+        }
+
+        if (window.flatpickr) {
+            const calendarOptions = {
+                dateFormat: "Y-m-d",
+                minDate: "{{ now()->toDateString() }}",
+                onDayCreate: markBookedDate,
+            };
+
+            checkOutPicker = flatpickr(checkOutInput, {
+                ...calendarOptions,
+                disable: checkoutDisabledRanges,
+                onChange: calculateTotal,
+            });
+
+            flatpickr(checkInInput, {
+                ...calendarOptions,
+                disable: bookedDateRanges,
+                onChange: function(selectedDates) {
+                    if (selectedDates.length && checkOutPicker) {
+                        const nextCheckoutDate = nextDateString(selectedDates[0]);
+                        checkOutPicker.set("minDate", nextCheckoutDate);
+
+                        if (!checkOutInput.value || parseLocalDate(checkOutInput.value) <= selectedDates[0]) {
+                            checkOutPicker.setDate(nextCheckoutDate, true);
+                        }
+                    }
+                    calculateTotal();
+                },
+            });
+        } else {
+            checkInInput.type = "date";
+            checkOutInput.type = "date";
+            checkInInput.min = "{{ now()->toDateString() }}";
+        }
+
         checkInInput.addEventListener("change", calculateTotal);
         checkOutInput.addEventListener("change", calculateTotal);
         paymentPlanInputs.forEach(input => {
@@ -351,10 +468,11 @@
         });
         
         checkInInput.addEventListener("change", function() {
-            if (this.value) {
-                const nextDay = new Date(this.value);
-                nextDay.setDate(nextDay.getDate() + 1);
-                checkOutInput.min = nextDay.toISOString().split("T")[0];
+            if (this.value && !checkOutPicker) {
+                checkOutInput.min = nextDateString(parseLocalDate(this.value));
+                if (!checkOutInput.value || parseLocalDate(checkOutInput.value) <= parseLocalDate(this.value)) {
+                    checkOutInput.value = checkOutInput.min;
+                }
             }
         });
         

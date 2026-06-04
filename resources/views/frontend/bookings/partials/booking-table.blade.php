@@ -35,6 +35,7 @@
                 <td class="px-6 py-4">
                     <div class="text-gray-600">{{ \Carbon\Carbon::parse($booking->check_in)->format('d M') }} - {{ \Carbon\Carbon::parse($booking->check_out)->format('d M Y') }}</div>
                     <div class="text-sm text-gray-500">{{ $booking->num_nights }} malam</div>
+                    <div class="text-xs text-gray-400">Check-in 13:00 | Check-out 11:00</div>
                 </td>
                 <td class="px-6 py-4">
                     <div class="text-gray-600">{{ $booking->num_guests }} tamu</div>

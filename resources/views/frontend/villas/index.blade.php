@@ -63,6 +63,9 @@
                     @if($villa->is_featured)
                     <span class="absolute top-4 left-4 badge badge-available">Unggulan</span>
                     @endif
+                    <span class="absolute top-4 right-4 badge {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
+                        {{ $villa->occupancy_label }}
+                    </span>
                 </div>
                 <div class="p-6">
                     <h3 class="font-display text-xl font-semibold mb-2">{{ $villa->name }}</h3>

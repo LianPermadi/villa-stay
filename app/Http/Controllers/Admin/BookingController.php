@@ -16,15 +16,27 @@ class BookingController extends Controller
         $request->validate([
             'approved_from' => 'nullable|date',
             'approved_to' => 'nullable|date|after_or_equal:approved_from',
+            'cancelled_from' => 'nullable|date',
+            'cancelled_to' => 'nullable|date|after_or_equal:cancelled_from',
         ]);
 
         $approvedFrom = $request->input('approved_from', now()->subMonths(3)->toDateString());
         $approvedTo = $request->input('approved_to', now()->addMonths(3)->toDateString());
+        $cancelledFrom = $request->input('cancelled_from', now()->subMonths(3)->toDateString());
+        $cancelledTo = $request->input('cancelled_to', now()->addMonths(3)->toDateString());
 
         $baseQuery = Booking::with(['villa', 'user', 'payment']);
 
+        $cancelledBookings = (clone $baseQuery)
+            ->where('status', 'cancelled')
+            ->whereDate('check_in', '>=', $cancelledFrom)
+            ->whereDate('check_in', '<=', $cancelledTo)
+            ->latest()
+            ->get();
+
         $approvedBookings = (clone $baseQuery)
             ->whereIn('payment_status', ['fully_paid', 'refunded'])
+            ->where('status', '!=', 'cancelled')
             ->whereDate('check_in', '>=', $approvedFrom)
             ->whereDate('check_in', '<=', $approvedTo)
             ->latest()
@@ -32,10 +44,11 @@ class BookingController extends Controller
 
         $unapprovedBookings = (clone $baseQuery)
             ->whereNotIn('payment_status', ['fully_paid', 'refunded'])
+            ->where('status', '!=', 'cancelled')
             ->latest()
             ->get();
 
-        return view("admin.bookings.index", compact("approvedBookings", "unapprovedBookings", "approvedFrom", "approvedTo"));
+        return view("admin.bookings.index", compact("approvedBookings", "unapprovedBookings", "cancelledBookings", "approvedFrom", "approvedTo", "cancelledFrom", "cancelledTo"));
     }
     
     public function show(Booking $booking)

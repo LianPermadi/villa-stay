@@ -10,7 +10,13 @@ class VillaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Villa::where("status", "available")->with('images');
+        $query = Villa::where("status", "available")
+            ->with('images')
+            ->withCount(['bookings as active_booking_today_count' => function ($query) {
+                $query->where('status', '!=', 'cancelled')
+                    ->whereDate('check_in', '<=', today())
+                    ->whereDate('check_out', '>', today());
+            }]);
         
         if ($request->has("search")) {
             $query->where("name", "like", "%" . $request->search . "%");
@@ -35,7 +41,13 @@ class VillaController extends Controller
     
     public function show($id)
     {
-        $villa = Villa::with("images")->findOrFail($id);
+        $villa = Villa::with("images")
+            ->withCount(['bookings as active_booking_today_count' => function ($query) {
+                $query->where('status', '!=', 'cancelled')
+                    ->whereDate('check_in', '<=', today())
+                    ->whereDate('check_out', '>', today());
+            }])
+            ->findOrFail($id);
         
         $availableDates = [];
         $bookedDates = $villa->bookings()

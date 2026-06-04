@@ -34,7 +34,15 @@ class DashboardController extends Controller
         ];
         
         // Recent villas with status
-        $recentVillas = Villa::with('images')->latest()->take(5)->get();
+        $recentVillas = Villa::with('images')
+            ->withCount(['bookings as active_booking_today_count' => function ($query) {
+                $query->where('status', '!=', 'cancelled')
+                    ->whereDate('check_in', '<=', today())
+                    ->whereDate('check_out', '>', today());
+            }])
+            ->latest()
+            ->take(5)
+            ->get();
 
         $revenueQuery = Revenue::query()
             ->when($validated['month'] ?? null, function ($query, $month) {

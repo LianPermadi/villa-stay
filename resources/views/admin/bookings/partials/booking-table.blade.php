@@ -42,6 +42,7 @@
                 <td class="px-6 py-4 text-sm text-gray-600">
                     <div>{{ \Carbon\Carbon::parse($booking->check_in)->format('d M') }} - {{ \Carbon\Carbon::parse($booking->check_out)->format('d M Y') }}</div>
                     <div class="text-xs text-gray-400">{{ $booking->num_nights }} malam</div>
+                    <div class="text-xs text-gray-400">Check-in 13:00 | Check-out 11:00</div>
                 </td>
                 <td class="px-6 py-4 text-sm font-semibold text-gray-900">
                     Rp {{ number_format($booking->total_price, 0, ',', '.') }}

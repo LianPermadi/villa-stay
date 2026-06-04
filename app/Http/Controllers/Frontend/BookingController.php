@@ -18,7 +18,16 @@ class BookingController extends Controller
     public function create($villaId)
     {
         $villa = Villa::with('images')->findOrFail($villaId);
-        return view("frontend.bookings.create", compact("villa"));
+        $bookedDateRanges = $villa->bookings()
+            ->where('status', '!=', 'cancelled')
+            ->get(['check_in', 'check_out'])
+            ->map(fn ($booking) => [
+                'from' => $booking->check_in->toDateString(),
+                'to' => $booking->check_out->copy()->subDay()->toDateString(),
+            ])
+            ->values();
+
+        return view("frontend.bookings.create", compact("villa", "bookedDateRanges"));
     }
     
     public function store(Request $request, $villaId)
@@ -26,7 +35,7 @@ class BookingController extends Controller
         $villa = Villa::findOrFail($villaId);
         
         $request->validate([
-            "check_in" => "required|date|after:today",
+            "check_in" => "required|date|after_or_equal:today",
             "check_out" => "required|date|after:check_in",
             "num_guests" => "required|integer|min:1|max:" . $villa->capacity,
             "guest_name" => "required|string|max:255",
@@ -91,18 +100,30 @@ class BookingController extends Controller
         $request->validate([
             'approved_from' => 'nullable|date',
             'approved_to' => 'nullable|date|after_or_equal:approved_from',
+            'cancelled_from' => 'nullable|date',
+            'cancelled_to' => 'nullable|date|after_or_equal:cancelled_from',
         ]);
 
         $approvedFrom = $request->input('approved_from', now()->subMonths(3)->toDateString());
         $approvedTo = $request->input('approved_to', now()->addMonths(3)->toDateString());
+        $cancelledFrom = $request->input('cancelled_from', now()->subMonths(3)->toDateString());
+        $cancelledTo = $request->input('cancelled_to', now()->addMonths(3)->toDateString());
 
         $baseQuery = Booking::where("user_id", Auth::id())
             ->with(['villa', 'payments' => function ($q) {
                 $q->latest()->limit(1);
             }]);
 
+        $cancelledBookings = (clone $baseQuery)
+            ->where('status', 'cancelled')
+            ->whereDate('check_in', '>=', $cancelledFrom)
+            ->whereDate('check_in', '<=', $cancelledTo)
+            ->latest()
+            ->get();
+
         $approvedBookings = (clone $baseQuery)
             ->whereIn('payment_status', ['fully_paid', 'refunded'])
+            ->where('status', '!=', 'cancelled')
             ->whereDate('check_in', '>=', $approvedFrom)
             ->whereDate('check_in', '<=', $approvedTo)
             ->latest()
@@ -110,10 +131,11 @@ class BookingController extends Controller
 
         $unapprovedBookings = (clone $baseQuery)
             ->whereNotIn('payment_status', ['fully_paid', 'refunded'])
+            ->where('status', '!=', 'cancelled')
             ->latest()
             ->get();
 
-        return view("frontend.bookings.index", compact("approvedBookings", "unapprovedBookings", "approvedFrom", "approvedTo"));
+        return view("frontend.bookings.index", compact("approvedBookings", "unapprovedBookings", "cancelledBookings", "approvedFrom", "approvedTo", "cancelledFrom", "cancelledTo"));
     }
     
     public function show(Booking $booking)
@@ -173,21 +195,11 @@ class BookingController extends Controller
             'payment_type' => 'required|in:down_payment,final_payment',
         ];
 
-        // Transaction ID only needs to be unique for the same payment type.
-        // DP and final payment are separate payment stages and may reuse a bank reference.
-        $transactionIdRule = Rule::unique('payments', 'transaction_id')
-            ->where(fn ($query) => $query->where('payment_type', $request->payment_type));
-
-        if ($existingPayment) {
-            $transactionIdRule->ignore($existingPayment->id);
-        }
-
         $rules['transaction_id'] = $isBankTransfer
-            ? ['required', 'string', 'max:255', $transactionIdRule]
+            ? ['required', 'string', 'max:255']
             : ['nullable'];
 
         $request->validate($rules, [
-            'transaction_id.unique' => 'No. rekening/transaksi ini sudah digunakan untuk jenis pembayaran yang sama.',
             'transaction_id.required' => 'Nomor rekening wajib diisi untuk pembayaran Transfer Bank.',
             'proof_image.required' => 'Bukti pembayaran wajib diupload.',
             'proof_image.image' => 'File bukti pembayaran harus berupa gambar.',

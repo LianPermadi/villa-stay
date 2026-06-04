@@ -11,7 +11,14 @@ class VillaController extends Controller
 {
     public function index()
     {
-        $villas = Villa::with('images')->latest()->paginate(10);
+        $villas = Villa::with('images')
+            ->withCount(['bookings as active_booking_today_count' => function ($query) {
+                $query->where('status', '!=', 'cancelled')
+                    ->whereDate('check_in', '<=', today())
+                    ->whereDate('check_out', '>', today());
+            }])
+            ->latest()
+            ->paginate(10);
         return view("admin.villas.index", compact("villas"));
     }
     

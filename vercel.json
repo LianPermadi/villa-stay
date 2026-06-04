@@ -11,6 +11,10 @@
     },
     "routes": [
         {
+            "src": "/_diagnostics",
+            "dest": "/api/diagnostics.php"
+        },
+        {
             "src": "/build/(.*)",
             "dest": "/public/build/$1"
         },

@@ -33,8 +33,8 @@ APP_DEBUG=false
 APP_URL=https://domain-vercel-kamu.vercel.app
 
 LOG_CHANNEL=stderr
-SESSION_DRIVER=database
-CACHE_STORE=database
+SESSION_DRIVER=file
+CACHE_STORE=array
 QUEUE_CONNECTION=sync
 
 DB_CONNECTION=pgsql

@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/diagnostics', \App\Http\Controllers\DiagnosticsController::class)
+    ->name('diagnostics');
+
 Route::get('/villa-images/{villaImage}', [\App\Http\Controllers\PublicVillaImageController::class, 'show'])
     ->name('villa-images.show');
 

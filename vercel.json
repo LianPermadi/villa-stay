@@ -1,7 +1,7 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "installCommand": "npm ci",
-    "buildCommand": "npm run build",
+    "installCommand": "echo \"Using committed dependencies handled by Vercel PHP runtime\"",
+    "buildCommand": "echo \"Using committed public/build assets\"",
     "outputDirectory": "public",
     "functions": {
         "api/*.php": {

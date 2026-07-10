@@ -18,20 +18,24 @@ class VillaController extends Controller
                     ->whereDate('check_out', '>', today());
             }]);
         
-        if ($request->has("search")) {
+        if ($request->filled("search")) {
             $query->where("name", "like", "%" . $request->search . "%");
         }
         
-        if ($request->has("capacity")) {
+        if ($request->filled("capacity")) {
             $query->where("capacity", ">=", $request->capacity);
         }
         
-        if ($request->has("min_price")) {
-            $query->where("price_per_night", ">=", $request->min_price);
-        }
-        
-        if ($request->has("max_price")) {
-            $query->where("price_per_night", "<=", $request->max_price);
+        if ($request->filled("price_range")) {
+            $prices = explode("-", $request->price_range);
+            if (count($prices) == 2) {
+                if ($prices[0] !== "") {
+                    $query->where("price_per_night", ">=", $prices[0]);
+                }
+                if ($prices[1] !== "") {
+                    $query->where("price_per_night", "<=", $prices[1]);
+                }
+            }
         }
         
         $villas = $query->paginate(9);

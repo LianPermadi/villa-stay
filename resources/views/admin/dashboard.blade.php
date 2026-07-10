@@ -178,12 +178,12 @@
         </div>
         
         <!-- Analytics Filters and Charts -->
-        <div class="analytics-panel rounded-2xl shadow-lg p-6 mb-8">
+        <div id="analytics-section" class="analytics-panel rounded-2xl shadow-lg p-6 mb-8">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-wide text-secondary">Revenue Analytics</p>
-                    <h2 class="font-display text-3xl font-bold text-primary mt-1">Grafik Pendapatan & Prediksi</h2>
-                    <p class="text-gray-600 mt-1">Filter data pendapatan dan prediksi Moving Average berdasarkan periode atau villa.</p>
+                    <h2 class="font-display text-3xl font-bold text-primary mt-1">Grafik Pendapatan & K-Means</h2>
+                    <p class="text-gray-600 mt-1">Filter data pendapatan dan Analisis Pengelompokan (Clustering) berdasarkan periode atau villa.</p>
                 </div>
 
                 @if(request()->hasAny(['month', 'year', 'date_from', 'date_to', 'villa_id']))
@@ -281,23 +281,37 @@
                 <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
                         <div>
-                            <h3 class="font-display text-xl font-bold text-primary">Prediksi Moving Average</h3>
-                            <p class="text-sm text-gray-500">Prediksi memakai rata-rata {{ $movingAverageData['window'] }} periode terakhir dari data terfilter.</p>
-                        </div>
-                        <div class="rounded-xl bg-primary/5 px-4 py-3 text-sm">
-                            <span class="block text-gray-500">Prediksi berikutnya</span>
-                            <span class="font-bold text-primary">
-                                @if($nextPrediction['value'] !== null)
-                                    {{ $nextPrediction['period'] }} - Rp {{ number_format($nextPrediction['value'], 0, ',', '.') }}
-                                @else
-                                    Belum cukup data
-                                @endif
-                            </span>
+                            <h3 class="font-display text-xl font-bold text-primary">K-Means Clustering Villa</h3>
+                            <p class="text-sm text-gray-500">Pengelompokan villa berdasarkan Total Pendapatan dan Jumlah Transaksi.</p>
                         </div>
                     </div>
-                    <div class="h-80">
-                        <canvas id="movingAverageChart"></canvas>
+                    <div class="h-80 relative">
+                        <canvas id="kmeansChart"></canvas>
                     </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+                <h3 class="font-display text-xl font-bold text-primary mb-4">Ringkasan Cluster (K-Means)</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    @foreach(['Tinggi', 'Sedang', 'Rendah'] as $clusterLabel)
+                    <div class="border rounded-xl p-4 {{ $clusterLabel === 'Tinggi' ? 'border-green-200 bg-green-50' : ($clusterLabel === 'Sedang' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50') }}">
+                        <h4 class="font-bold text-lg mb-3 flex items-center justify-between">
+                            Cluster {{ $clusterLabel }}
+                            <span class="text-sm font-normal text-gray-600">{{ count($kmeansResult['summary'][$clusterLabel] ?? []) }} Villa</span>
+                        </h4>
+                        <ul class="space-y-2 text-sm">
+                            @forelse($kmeansResult['summary'][$clusterLabel] ?? [] as $item)
+                            <li class="flex justify-between items-center bg-white p-2 rounded border">
+                                <span class="font-semibold">{{ $item['name'] }}</span>
+                                <span class="text-gray-500">Rp {{ number_format($item['revenue'], 0, ',', '.') }} ({{ $item['bookings'] }}x)</span>
+                            </li>
+                            @empty
+                            <li class="text-gray-500 italic text-center py-2">Tidak ada villa di cluster ini</li>
+                            @endforelse
+                        </ul>
+                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -309,6 +323,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Auto-scroll to analytics section if there are filter parameters in URL
+        if (window.location.search !== "") {
+            setTimeout(() => {
+                const analyticsSection = document.getElementById("analytics-section");
+                if (analyticsSection) {
+                    analyticsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            }, 100);
+        }
+
         const filterForm = document.getElementById("analytics-filter-form");
         let submitTimer = null;
 
@@ -384,76 +408,62 @@
             }
         });
 
-        const movingAverageData = @json($movingAverageData);
-        const movingAverageCtx = document.getElementById("movingAverageChart").getContext("2d");
+        const kmeansData = @json($kmeansResult['data'] ?? []);
+        const kmeansCtx = document.getElementById("kmeansChart").getContext("2d");
 
-        new Chart(movingAverageCtx, {
-            type: "line",
-            data: {
-                labels: movingAverageData.labels,
-                datasets: [
-                    {
-                        label: "Pendapatan Aktual",
-                        data: movingAverageData.actual,
-                        borderColor: "rgba(45, 90, 39, 1)",
-                        backgroundColor: "rgba(45, 90, 39, 0.12)",
-                        borderWidth: 3,
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                        fill: true,
-                        tension: 0.35
-                    },
-                    {
-                        label: "Prediksi Moving Average",
-                        data: movingAverageData.predicted,
-                        borderColor: "rgba(201, 169, 98, 1)",
-                        backgroundColor: "rgba(201, 169, 98, 0.12)",
-                        borderWidth: 3,
-                        borderDash: [8, 6],
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                        fill: false,
-                        tension: 0.35
-                    }
-                ]
-            },
+        // Prepare datasets for scatter chart
+        const clusters = {
+            'Tinggi': { data: [], backgroundColor: 'rgba(34, 197, 94, 0.8)' },
+            'Sedang': { data: [], backgroundColor: 'rgba(234, 179, 8, 0.8)' },
+            'Rendah': { data: [], backgroundColor: 'rgba(239, 68, 68, 0.8)' }
+        };
+
+        kmeansData.forEach(item => {
+            if (clusters[item.cluster]) {
+                clusters[item.cluster].data.push({
+                    x: item.bookings,
+                    y: item.revenue,
+                    name: item.name
+                });
+            }
+        });
+
+        const datasets = Object.keys(clusters).map(key => ({
+            label: 'Cluster ' + key,
+            data: clusters[key].data,
+            backgroundColor: clusters[key].backgroundColor,
+            borderColor: clusters[key].backgroundColor.replace('0.8', '1'),
+            pointRadius: 8,
+            pointHoverRadius: 10
+        }));
+
+        new Chart(kmeansCtx, {
+            type: "scatter",
+            data: { datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 1200,
-                    easing: "easeOutQuart"
-                },
-                interaction: {
-                    intersect: false,
-                    mode: "index"
-                },
                 plugins: {
-                    legend: {
-                        labels: {
-                            usePointStyle: true
-                        }
-                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.dataset.label + ": " + formatRupiah(context.parsed.y);
+                                const pt = context.raw;
+                                return pt.name + ": " + formatRupiah(pt.y) + " (" + pt.x + " Booking)";
                             }
                         }
                     }
                 },
                 scales: {
                     x: {
-                        grid: {
-                            display: false
-                        }
+                        title: { display: true, text: 'Jumlah Transaksi (Booking)' },
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
                     },
                     y: {
+                        title: { display: true, text: 'Total Pendapatan (Rp)' },
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return formatRupiah(value);
-                            }
+                            callback: function(value) { return formatRupiah(value); }
                         }
                     }
                 }

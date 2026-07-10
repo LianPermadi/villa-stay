@@ -15,50 +15,88 @@
         
         <div class="grid lg:grid-cols-2 gap-12">
             <!-- Villa Gallery -->
+            <!-- Villa Gallery -->
             <div class="animate-in">
-                <div class="h-96 relative overflow-hidden rounded-2xl mb-4">
-                    <img src="{{ $villa->primary_image_url }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
-                    @if($villa->is_featured)
-                    <span class="absolute top-4 left-4 badge badge-available">Unggulan</span>
+                <!-- Main Carousel Container -->
+                <div class="relative group">
+                    <div id="gallery-carousel" class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar h-96 rounded-2xl mb-4 relative scroll-smooth">
+                        @php
+                            $allImages = collect([['url' => $villa->primary_image_url]]);
+                            foreach($villa->images as $img) {
+                                // Add non-primary images to the list
+                                if($img->url !== $villa->primary_image_url) {
+                                    $allImages->push(['url' => $img->url]);
+                                }
+                            }
+                        @endphp
+
+                        @foreach($allImages as $index => $img)
+                        <div id="gallery-img-{{ $index }}" class="w-full flex-shrink-0 snap-center relative">
+                            <img src="{{ $img['url'] }}" alt="{{ $villa->name }}" class="w-full h-full object-cover">
+                            
+                            <!-- Badges on the first image -->
+                            @if($index === 0)
+                                @if($villa->is_featured)
+                                <span class="absolute top-4 left-4 badge badge-available shadow-md">Unggulan</span>
+                                @endif
+                                <span class="absolute top-4 right-4 badge shadow-md {{ $villa->status === "available" ? "badge-available" : ($villa->status === "maintenance" ? "badge-pending" : "badge-cancelled") }}">
+                                    @if($villa->status === "available")
+                                        Aktif / Siap Booking
+                                    @elseif($villa->status === "unavailable")
+                                        Tidak Aktif
+                                    @elseif($villa->status === "maintenance")
+                                        Renovasi
+                                    @else
+                                        {{ $villa->status }}
+                                    @endif
+                                </span>
+                                <span class="absolute bottom-4 right-4 badge shadow-md {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
+                                    {{ $villa->occupancy_label }}
+                                </span>
+                            @endif
+                        </div>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Navigation Arrows -->
+                    @if($allImages->count() > 1)
+                    <button onclick="scrollGallery(-1)" class="absolute top-1/2 left-4 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white text-gray-800 transition z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button onclick="scrollGallery(1)" class="absolute top-1/2 right-4 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white text-gray-800 transition z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
                     @endif
-                    <span class="absolute top-4 right-4 badge {{ $villa->status === "available" ? "badge-available" : ($villa->status === "maintenance" ? "badge-pending" : "badge-cancelled") }}">
-                        @if($villa->status === "available")
-                            Aktif / Siap Booking
-                        @elseif($villa->status === "unavailable")
-                            Tidak Aktif
-                        @elseif($villa->status === "maintenance")
-                            Renovasi
-                        @else
-                            {{ $villa->status }}
-                        @endif
-                    </span>
-                    <span class="absolute bottom-4 right-4 badge {{ $villa->is_occupied_today ? 'badge-cancelled' : 'badge-available' }}">
-                        {{ $villa->occupancy_label }}
-                    </span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                    @forelse($villa->images as $image)
-                    <div class="h-24 bg-gray-200 rounded-lg overflow-hidden">
-                        <img src="{{ $image->url }}" alt="Gambar {{ $villa->name }}" class="w-full h-full object-cover">
-                    </div>
-                    @empty
-                    <div class="h-24 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <div class="h-24 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <div class="h-24 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    @endforelse
+
+                <!-- Thumbnails -->
+                @if($allImages->count() > 1)
+                <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    @foreach($allImages as $index => $img)
+                    <button onclick="scrollToImage({{ $index }})" class="h-16 sm:h-20 bg-gray-200 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition hover:opacity-100 opacity-70">
+                        <img src="{{ $img['url'] }}" alt="Thumbnail {{ $index }}" class="w-full h-full object-cover">
+                    </button>
+                    @endforeach
                 </div>
+                @endif
+                
+                <style>
+                    .hide-scrollbar::-webkit-scrollbar { display: none; }
+                    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                </style>
+
+                <script>
+                    function scrollGallery(direction) {
+                        const carousel = document.getElementById('gallery-carousel');
+                        const scrollAmount = carousel.clientWidth;
+                        carousel.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+                    }
+                    function scrollToImage(index) {
+                        const carousel = document.getElementById('gallery-carousel');
+                        const scrollAmount = carousel.clientWidth;
+                        carousel.scrollTo({ left: index * scrollAmount, behavior: 'smooth' });
+                    }
+                </script>
             </div>
             
             <!-- Villa Details -->

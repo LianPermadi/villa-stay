@@ -44,6 +44,9 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $dateFrom = $request->has('date_from') ? $request->input('date_from') : now()->subMonths(6)->format('Y-m-d');
+        $dateTo = $request->has('date_to') ? $request->input('date_to') : now()->addMonths(6)->format('Y-m-d');
+
         $revenueQuery = Revenue::query()
             ->when($validated['month'] ?? null, function ($query, $month) {
                 $query->whereMonth('revenue_date', $month);
@@ -51,11 +54,11 @@ class DashboardController extends Controller
             ->when($validated['year'] ?? null, function ($query, $year) {
                 $query->whereYear('revenue_date', $year);
             })
-            ->when($validated['date_from'] ?? null, function ($query, $dateFrom) {
-                $query->whereDate('revenue_date', '>=', $dateFrom);
+            ->when($dateFrom, function ($query, $df) {
+                $query->whereDate('revenue_date', '>=', $df);
             })
-            ->when($validated['date_to'] ?? null, function ($query, $dateTo) {
-                $query->whereDate('revenue_date', '<=', $dateTo);
+            ->when($dateTo, function ($query, $dt) {
+                $query->whereDate('revenue_date', '<=', $dt);
             })
             ->when($validated['villa_id'] ?? null, function ($query, $villaId) {
                 $query->whereHas('booking', fn ($bookingQuery) => $bookingQuery->where('villa_id', $villaId));
@@ -72,8 +75,20 @@ class DashboardController extends Controller
             ->orderBy("period")
             ->get();
 
-        $movingAverageData = $this->buildMovingAverageData($monthlyRevenue);
-        $nextPrediction = $movingAverageData['next_prediction'];
+        // K-Means Clustering for Villa Performance
+        $villasPerformance = (clone $revenueQuery)
+            ->join('bookings', 'revenues.booking_id', '=', 'bookings.id')
+            ->join('villas', 'bookings.villa_id', '=', 'villas.id')
+            ->selectRaw('villas.id as id, villas.name as name, SUM(revenues.amount) as revenue, COUNT(DISTINCT revenues.booking_id) as bookings')
+            ->groupBy('villas.id', 'villas.name')
+            ->get()
+            ->toArray();
+
+        // If no filters are applied but some villas have 0 revenue, we might want to include them, 
+        // but clustering only those with revenue is also fine (or we fetch all and left join).
+        // Let's stick to the active ones based on revenue filter for accurate clustering.
+        $kmeansResult = $this->buildKMeansClusteringData($villasPerformance, 3);
+        
         $availableYears = Revenue::orderByDesc('revenue_date')
             ->get(['revenue_date'])
             ->pluck('revenue_date')
@@ -81,11 +96,12 @@ class DashboardController extends Controller
             ->unique()
             ->filter()
             ->values();
+            
         $filters = [
             'month' => $validated['month'] ?? '',
             'year' => $validated['year'] ?? '',
-            'date_from' => $validated['date_from'] ?? '',
-            'date_to' => $validated['date_to'] ?? '',
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
             'villa_id' => $validated['villa_id'] ?? '',
         ];
 
@@ -102,51 +118,136 @@ class DashboardController extends Controller
             "availableYears",
             "filters",
             "monthlyRevenue",
-            "movingAverageData",
-            "nextPrediction"
+            "kmeansResult"
         ));
     }
 
-    private function buildMovingAverageData($monthlyRevenue, int $window = 3): array
+    private function buildKMeansClusteringData(array $data, int $k = 3): array
     {
-        $history = [];
-        $labels = [];
-        $actual = [];
-        $predicted = [];
+        if (empty($data)) return ['data' => [], 'summary' => []];
+        if (count($data) < $k) $k = count($data);
 
-        foreach ($monthlyRevenue as $row) {
-            $amount = (float) $row->total;
-            $labels[] = $row->period;
-            $actual[] = $amount;
-            $predicted[] = count($history) > 0
-                ? round(array_sum(array_slice($history, -$window)) / min(count($history), $window), 2)
-                : null;
-            $history[] = $amount;
+        // Extract values for normalization
+        $revenues = array_column($data, 'revenue');
+        $bookings = array_column($data, 'bookings');
+        
+        $minRev = min($revenues) ?: 0;
+        $maxRev = max($revenues) ?: 1;
+        if ($minRev == $maxRev) $maxRev = $minRev + 1;
+        
+        $minBkg = min($bookings) ?: 0;
+        $maxBkg = max($bookings) ?: 1;
+        if ($minBkg == $maxBkg) $maxBkg = $minBkg + 1;
+
+        // Normalize
+        foreach ($data as &$item) {
+            $item['norm_revenue'] = ($item['revenue'] - $minRev) / ($maxRev - $minRev);
+            $item['norm_bookings'] = ($item['bookings'] - $minBkg) / ($maxBkg - $minBkg);
+        }
+        unset($item);
+
+        // Initialize centroids randomly
+        $centroids = [];
+        $usedIndices = [];
+        while (count($centroids) < $k) {
+            $idx = rand(0, count($data) - 1);
+            if (!in_array($idx, $usedIndices)) {
+                $usedIndices[] = $idx;
+                $centroids[] = [
+                    'revenue' => $data[$idx]['norm_revenue'],
+                    'bookings' => $data[$idx]['norm_bookings']
+                ];
+            }
         }
 
-        $nextPeriod = null;
-        $nextValue = null;
+        $clusters = [];
+        $iterations = 0;
+        $maxIterations = 100;
+        $hasChanged = true;
 
-        if (count($history) > 0) {
-            $nextValue = round(array_sum(array_slice($history, -$window)) / min(count($history), $window), 2);
-            $lastPeriod = end($labels);
+        while ($hasChanged && $iterations < $maxIterations) {
+            $hasChanged = false;
+            $newClusters = array_fill(0, $k, []);
 
-            try {
-                $nextPeriod = Carbon::createFromFormat('Y-m', $lastPeriod)->addMonth()->format('Y-m');
-            } catch (\Throwable $e) {
-                $nextPeriod = 'Periode berikutnya';
+            // Assign points to nearest centroid
+            foreach ($data as $idx => $item) {
+                $minDist = PHP_FLOAT_MAX;
+                $closestCentroid = 0;
+                
+                foreach ($centroids as $cIdx => $centroid) {
+                    $dist = pow($item['norm_revenue'] - $centroid['revenue'], 2) + 
+                            pow($item['norm_bookings'] - $centroid['bookings'], 2);
+                    if ($dist < $minDist) {
+                        $minDist = $dist;
+                        $closestCentroid = $cIdx;
+                    }
+                }
+                $newClusters[$closestCentroid][] = $idx;
+            }
+
+            // Update centroids
+            foreach ($newClusters as $cIdx => $clusterIndices) {
+                if (count($clusterIndices) > 0) {
+                    $sumRev = 0;
+                    $sumBkg = 0;
+                    foreach ($clusterIndices as $idx) {
+                        $sumRev += $data[$idx]['norm_revenue'];
+                        $sumBkg += $data[$idx]['norm_bookings'];
+                    }
+                    $newRev = $sumRev / count($clusterIndices);
+                    $newBkg = $sumBkg / count($clusterIndices);
+                    
+                    if (abs($centroids[$cIdx]['revenue'] - $newRev) > 0.0001 || 
+                        abs($centroids[$cIdx]['bookings'] - $newBkg) > 0.0001) {
+                        $hasChanged = true;
+                    }
+                    
+                    $centroids[$cIdx]['revenue'] = $newRev;
+                    $centroids[$cIdx]['bookings'] = $newBkg;
+                }
+            }
+            
+            $clusters = $newClusters;
+            $iterations++;
+        }
+
+        // Sort clusters by average revenue to assign logical labels (Tinggi, Sedang, Rendah)
+        $clusterStats = [];
+        foreach ($clusters as $cIdx => $indices) {
+            $avgRev = 0;
+            if (count($indices) > 0) {
+                $sumRev = 0;
+                foreach ($indices as $idx) {
+                    $sumRev += $data[$idx]['revenue'];
+                }
+                $avgRev = $sumRev / count($indices);
+            }
+            $clusterStats[] = [
+                'index' => $cIdx,
+                'avg_revenue' => $avgRev,
+                'indices' => $indices
+            ];
+        }
+
+        usort($clusterStats, fn($a, $b) => $b['avg_revenue'] <=> $a['avg_revenue']);
+        $labels = ['Tinggi', 'Sedang', 'Rendah'];
+        
+        $finalData = [];
+        $clusterSummaries = [];
+        foreach ($clusterStats as $rank => $stat) {
+            $label = $labels[$rank] ?? "Cluster $rank";
+            $clusterSummaries[$label] = [];
+            foreach ($stat['indices'] as $idx) {
+                $item = $data[$idx];
+                $item['cluster'] = $label;
+                $finalData[] = $item;
+                $clusterSummaries[$label][] = $item;
             }
         }
 
         return [
-            'labels' => $labels,
-            'actual' => $actual,
-            'predicted' => $predicted,
-            'window' => $window,
-            'next_prediction' => [
-                'period' => $nextPeriod,
-                'value' => $nextValue,
-            ],
+            'data' => $finalData,
+            'summary' => $clusterSummaries,
         ];
     }
 }

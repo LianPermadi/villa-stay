@@ -146,7 +146,7 @@ class DatabaseSeeder extends Seeder
                 "guest_email" => "john@example.com",
                 "guest_phone" => "081234567891",
                 "special_requests" => "Mohon disediakan extra bed",
-                "status" => "confirmed",
+                "status" => "pending",
                 "created_at" => now(),
                 "updated_at" => now(),
             ],
@@ -178,7 +178,7 @@ class DatabaseSeeder extends Seeder
                 "guest_email" => "john@example.com",
                 "guest_phone" => "081234567891",
                 "special_requests" => "Kamar dengan pemandangan taman",
-                "status" => "completed",
+                "status" => "pending",
                 "created_at" => now(),
                 "updated_at" => now(),
             ],
@@ -208,40 +208,86 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $revenues = DB::table("revenues")
-            ->select(DB::raw("SUM(amount) as total, period"))
-            ->groupBy("period")
-            ->orderBy("period")
-            ->get();
+        $faker = \Faker\Factory::create('id_ID');
 
-        $revenueData = [];
-        foreach ($revenues as $revenue) {
-            $revenueData[] = [
-                "period" => $revenue->period,
-                "amount" => $revenue->total,
-            ];
+        // Generate 15 extra random villas
+        for ($i = 6; $i <= 20; $i++) {
+            $price = $faker->numberBetween(5, 50) * 100000;
+            $villaId = DB::table('villas')->insertGetId([
+                'name' => 'Villa ' . ucfirst($faker->words(2, true)),
+                'description' => $faker->paragraph(),
+                'price_per_night' => $price,
+                'capacity' => $faker->numberBetween(2, 12),
+                'bedrooms' => $faker->numberBetween(1, 6),
+                'bathrooms' => $faker->numberBetween(1, 4),
+                'area' => $faker->randomFloat(2, 50, 600),
+                'status' => $faker->boolean(80) ? 'available' : 'unavailable',
+                'is_featured' => $faker->boolean(20),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Copy images from dummy
+            for ($j = 1; $j <= 3; $j++) {
+                DB::table('villa_images')->insert([
+                    'villa_id' => $villaId,
+                    'image_path' => 'villas/villa-' . rand(1, 5) . '-' . $j . '.jpg',
+                    'is_primary' => $j === 1,
+                    'sort_order' => $j,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
-        for ($i = 2; $i < count($revenueData); $i++) {
-            $sum = $revenueData[$i]["amount"] + $revenueData[$i-1]["amount"] + $revenueData[$i-2]["amount"];
-            $average = $sum / 3;
+        // Generate 150 random bookings over the last 12 months
+        for ($i = 0; $i < 150; $i++) {
+            $villaId = $faker->numberBetween(1, 20);
+            $villaPrice = DB::table('villas')->where('id', $villaId)->value('price_per_night');
+            $checkIn = $faker->dateTimeBetween('-12 months', '+1 months')->format('Y-m-d');
+            $nights = $faker->numberBetween(1, 5);
+            $checkOut = date('Y-m-d', strtotime($checkIn . ' + ' . $nights . ' days'));
+            
+            $status = 'pending';
 
-            DB::table("moving_average_results")->insert([
-                "period" => $revenueData[$i]["period"],
-                "actual_revenue" => $revenueData[$i]["amount"],
-                "predicted_revenue" => $average,
-                "months_used" => 3,
-                "calculation_data" => json_encode([
-                    "month_1" => $revenueData[$i-2]["period"],
-                    "amount_1" => $revenueData[$i-2]["amount"],
-                    "month_2" => $revenueData[$i-1]["period"],
-                    "amount_2" => $revenueData[$i-1]["amount"],
-                    "month_3" => $revenueData[$i]["period"],
-                    "amount_3" => $revenueData[$i]["amount"],
-                ]),
-                "created_at" => now(),
-                "updated_at" => now(),
+            $bookingId = DB::table('bookings')->insertGetId([
+                'user_id' => 2,
+                'villa_id' => $villaId,
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'num_nights' => $nights,
+                'num_guests' => $faker->numberBetween(2, 6),
+                'total_price' => $villaPrice * $nights,
+                'guest_name' => $faker->name,
+                'guest_email' => $faker->email,
+                'guest_phone' => $faker->phoneNumber,
+                'special_requests' => $faker->boolean(30) ? $faker->sentence : null,
+                'status' => $status,
+                'created_at' => $checkIn,
+                'updated_at' => $checkIn,
             ]);
+
+            if ($status !== 'cancelled') {
+                DB::table('revenues')->insert([
+                    'booking_id' => $bookingId,
+                    'amount' => $villaPrice * $nights,
+                    'revenue_date' => $checkIn,
+                    'period' => date('Y-m', strtotime($checkIn)),
+                    'created_at' => $checkIn,
+                    'updated_at' => $checkIn,
+                ]);
+
+                DB::table('payments')->insert([
+                    'booking_id' => $bookingId,
+                    'amount' => $villaPrice * $nights,
+                    'payment_method' => 'bank_transfer',
+                    'transaction_id' => 'TRX' . str_pad($bookingId, 6, '0', STR_PAD_LEFT),
+                    'proof_image' => null,
+                    'status' => in_array($status, ['completed', 'confirmed']) ? 'verified' : 'pending',
+                    'created_at' => $checkIn,
+                    'updated_at' => $checkIn,
+                ]);
+            }
         }
     }
 }

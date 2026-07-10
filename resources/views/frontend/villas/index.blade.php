@@ -11,7 +11,7 @@
         </div>
         
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-12 animate-in stagger-1">
-            <form action="{{ route('villas.index') }}" method="GET" class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <form action="{{ route('villas.index') }}" method="GET" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Cari Villa</label>
                     <input type="text" name="search" value="{{ request('search') }}" 
@@ -22,25 +22,23 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Kapasitas Tamu</label>
                     <select name="capacity" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
                         <option value="">Pilih kapasitas</option>
-                        <option value="2">2 orang</option>
-                        <option value="4">4 orang</option>
-                        <option value="6">6 orang</option>
-                        <option value="8">8+ orang</option>
+                        <option value="2" {{ request('capacity') == '2' ? 'selected' : '' }}>2 orang</option>
+                        <option value="4" {{ request('capacity') == '4' ? 'selected' : '' }}>4 orang</option>
+                        <option value="6" {{ request('capacity') == '6' ? 'selected' : '' }}>6 orang</option>
+                        <option value="8" {{ request('capacity') == '8' ? 'selected' : '' }}>8+ orang</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Harga Minimum</label>
-                    <input type="number" name="min_price" value="{{ request('min_price') }}" 
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition" 
-                        placeholder="Rp 0">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Rentang Harga</label>
+                    <select name="price_range" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                        <option value="">Semua Harga</option>
+                        <option value="0-1000000" {{ request('price_range') == '0-1000000' ? 'selected' : '' }}>< Rp 1.000.000</option>
+                        <option value="1000000-2500000" {{ request('price_range') == '1000000-2500000' ? 'selected' : '' }}>Rp 1.000.000 - Rp 2.500.000</option>
+                        <option value="2500000-5000000" {{ request('price_range') == '2500000-5000000' ? 'selected' : '' }}>Rp 2.500.000 - Rp 5.000.000</option>
+                        <option value="5000000-" {{ request('price_range') == '5000000-' ? 'selected' : '' }}>> Rp 5.000.000</option>
+                    </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Harga Maksimum</label>
-                    <input type="number" name="max_price" value="{{ request('max_price') }}" 
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition" 
-                        placeholder="Rp 0">
-                </div>
-                <div class="md:col-span-2 lg:col-span-4">
+                <div class="md:col-span-2 lg:col-span-3">
                     <button type="submit" class="btn-primary w-full md:w-auto">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>

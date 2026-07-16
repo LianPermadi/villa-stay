@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,6 +14,7 @@ class Villa extends Model
         'name',
         'description',
         'price_per_night',
+        'currency',
         'capacity',
         'bedrooms',
         'bathrooms',
@@ -78,12 +80,13 @@ class Villa extends Model
 
     public function getFormattedPriceAttribute()
     {
-        return 'Rp ' . number_format($this->price_per_night, 0, ',', '.');
+        return Currency::format($this->price_per_night, $this->currency);
     }
 
     public function calculateDownPaymentAmount($numNights)
     {
         $total = $this->price_per_night * $numNights;
+
         return round(($total * $this->down_payment_percentage) / 100, 2);
     }
 
@@ -94,7 +97,7 @@ class Villa extends Model
         } elseif ($this->payment_due_days == 1) {
             return 'H-1';
         } else {
-            return 'H-' . $this->payment_due_days;
+            return 'H-'.$this->payment_due_days;
         }
     }
 
@@ -106,6 +109,6 @@ class Villa extends Model
             ->whereDate('check_out', '>', $checkIn)
             ->exists();
 
-        return !$conflictingBookings && $this->status === 'available';
+        return ! $conflictingBookings && $this->status === 'available';
     }
 }

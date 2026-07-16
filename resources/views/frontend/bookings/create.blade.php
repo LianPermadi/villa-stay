@@ -95,7 +95,7 @@
                 <h2 class="font-display text-3xl font-bold text-primary mb-2">{{ $villa->name }}</h2>
                 <p class="text-gray-600 mb-4">{{ $villa->description }}</p>
                 <div class="flex items-center gap-2 mb-6">
-                    <span class="text-primary font-bold text-2xl">Rp {{ number_format($villa->price_per_night, 0, ",", ".") }}</span>
+                    <span class="text-primary font-bold text-2xl">{{ $villa->formatted_price }}</span>
                     <span class="text-gray-500">/ malam</span>
                 </div>
             </div>
@@ -267,16 +267,16 @@
                                 <div class="border-t border-gray-200 my-2"></div>
                                 <div class="flex justify-between items-center">
                                     <span class="font-semibold text-primary" id="dp-label">DP ({{ $villa->down_payment_percentage }}%)</span>
-                                    <span class="font-semibold text-primary" id="dpAmountDisplay">Rp -</span>
+                                    <span class="font-semibold text-primary" id="dpAmountDisplay">-</span>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">Sisa pembayaran</span>
-                                    <span class="font-semibold" id="remainingDisplay">Rp -</span>
+                                    <span class="font-semibold" id="remainingDisplay">-</span>
                                 </div>
                                 <div class="border-t border-gray-200 my-2"></div>
                                 <div class="flex justify-between items-center">
                                     <span class="font-semibold text-primary">Total Biaya</span>
-                                    <span class="font-bold text-xl text-primary" id="totalPriceDisplay">Rp 0</span>
+                                    <span class="font-bold text-xl text-primary" id="totalPriceDisplay">{{ \App\Support\Currency::format(0, $villa->currency) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -312,12 +312,18 @@
         const remainingDisplay = document.getElementById("remainingDisplay");
         const dpLabel = document.getElementById("dp-label");
         const pricePerNight = {{ $villa->price_per_night }};
+        const currency = @json($villa->currency);
         const dpPercentage = {{ $villa->down_payment_percentage }};
         const bookedDateRanges = @json($bookedDateRanges ?? []);
         let checkOutPicker = null;
         
-        function formatRupiah(num) {
-            return "Rp " + Math.round(num).toLocaleString("id-ID");
+        function formatMoney(num) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency,
+                minimumFractionDigits: {{ \App\Support\Currency::decimals($villa->currency) }},
+                maximumFractionDigits: {{ \App\Support\Currency::decimals($villa->currency) }},
+            }).format(num);
         }
         
         function calculateTotal() {
@@ -344,15 +350,15 @@
                 }
                 
                 numNightsDisplay.textContent = numNights + " malam";
-                totalPriceDisplay.textContent = formatRupiah(totalPrice);
-                dpAmountDisplay.textContent = formatRupiah(dpAmount);
-                remainingDisplay.textContent = formatRupiah(remainingAmount);
+                totalPriceDisplay.textContent = formatMoney(totalPrice);
+                dpAmountDisplay.textContent = formatMoney(dpAmount);
+                remainingDisplay.textContent = formatMoney(remainingAmount);
                 dpLabel.textContent = dpLabelText;
             } else {
                 numNightsDisplay.textContent = "-";
-                totalPriceDisplay.textContent = "Rp 0";
-                dpAmountDisplay.textContent = "Rp -";
-                remainingDisplay.textContent = "Rp -";
+                totalPriceDisplay.textContent = formatMoney(0);
+                dpAmountDisplay.textContent = '-';
+                remainingDisplay.textContent = '-';
                 dpLabel.textContent = 'DP ({{ $villa->down_payment_percentage }}%)';
             }
         }

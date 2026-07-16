@@ -41,7 +41,7 @@
                     <div class="text-gray-600">{{ $booking->num_guests }} tamu</div>
                 </td>
                 <td class="px-6 py-4">
-                    <div class="font-semibold text-primary">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</div>
+                    <div class="font-semibold text-primary">{{ $booking->formatted_total_price }}</div>
                 </td>
                 <td class="px-6 py-4">
                     <span class="px-3 py-1 rounded-full text-sm font-medium {{ $bookingBadge['class'] }}">

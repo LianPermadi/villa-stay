@@ -105,7 +105,7 @@
                 <p class="text-gray-600 mb-6">{{ $villa->description }}</p>
                 
                 <div class="flex items-center gap-6 mb-6">
-                    <span class="text-primary font-bold text-3xl">Rp {{ number_format($villa->price_per_night, 0, ',', '.') }}</span>
+                    <span class="text-primary font-bold text-3xl">{{ $villa->formatted_price }}</span>
                     <span class="text-gray-500">/ malam</span>
                 </div>
                 

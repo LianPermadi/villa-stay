@@ -49,11 +49,23 @@
                     <div class="grid md:grid-cols-2 gap-6">
                         <!-- Harga per Malam -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga per Malam (Rp) <span class="text-red-500">*</span></label>
-                            <input type="number" name="price_per_night" value="{{ old('price_per_night', $villa->price_per_night) }}" 
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga per Malam <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.01" name="price_per_night" value="{{ old('price_per_night', $villa->price_per_night) }}"
                                 class="w-full px-4 py-3 rounded-lg border @error('price_per_night') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                                placeholder="500000" required>
+                                placeholder="Contoh: 150 atau 500000" required>
                             @error('price_per_night')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mata Uang <span class="text-red-500">*</span></label>
+                            <select name="currency" class="w-full px-4 py-3 rounded-lg border @error('currency') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:border-transparent transition" required>
+                                @foreach(\App\Support\Currency::options() as $code => $label)
+                                    <option value="{{ $code }}" {{ old('currency', $villa->currency ?? 'IDR') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('currency')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -152,11 +164,18 @@
                                     </svg>
                                 </span>
                                 <span class="absolute top-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded" data-label>{{ $loop->index + 1 }}</span>
+                                <button type="button" onclick="markExistingImageForDeletion(event, this, {{ $image->id }})" class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow hover:bg-red-700" title="Hapus gambar">
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    Hapus
+                                </button>
                             </div>
                             @endforeach
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">Klik gambar untuk menjadikan primary. Gambar dengan badge hijau adalah gambar utama.</p>
+                        <p class="text-sm text-gray-500 mt-2">Klik gambar untuk menjadikannya gambar utama. Penghapusan diterapkan ketika tombol “Perbarui Villa” ditekan.</p>
                         <input type="hidden" name="existing_primary_id" id="existing_primary_id" value="{{ $villa->images->firstWhere('is_primary', true)?->id ?? '' }}">
+                        <div id="deleted-image-inputs"></div>
                     </div>
                     @endif
 
@@ -169,7 +188,7 @@
                         <input type="hidden" name="primary_image_index" id="primary_image_index" value="-1">
                         
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
-                            <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/jpg" class="hidden" id="image-upload">
+                            <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp" class="hidden" id="image-upload">
                             <label for="image-upload" class="cursor-pointer">
                                 <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -294,6 +313,27 @@
         
         // Clear new preview badges
         document.querySelectorAll('#image-preview-container [data-badge]').forEach(b => b.classList.add('hidden'));
+    }
+
+    function markExistingImageForDeletion(event, button, imageId) {
+        event.stopPropagation();
+
+        if (!confirm('Hapus gambar ini dari villa?')) {
+            return;
+        }
+
+        const card = button.closest('[data-image-id]');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'delete_images[]';
+        input.value = imageId;
+        document.getElementById('deleted-image-inputs').appendChild(input);
+        card.remove();
+
+        if (existingPrimaryId === imageId) {
+            existingPrimaryId = null;
+            document.getElementById('existing_primary_id').value = '';
+        }
     }
 
     function setNewPrimary(event, element) {

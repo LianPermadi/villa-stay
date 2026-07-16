@@ -45,10 +45,10 @@
                     <div class="text-xs text-gray-400">Check-in 13:00 | Check-out 11:00</div>
                 </td>
                 <td class="px-6 py-4 text-sm font-semibold text-gray-900">
-                    Rp {{ number_format($booking->total_price, 0, ',', '.') }}
+                    {{ $booking->formatted_total_price }}
                 </td>
                 <td class="px-6 py-4 text-sm">
-                    <span class="text-primary font-medium">Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}</span>
+                    <span class="text-primary font-medium">{{ $booking->formatMoney($booking->down_payment_amount) }}</span>
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex flex-col gap-1">

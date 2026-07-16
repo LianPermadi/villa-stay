@@ -48,7 +48,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-primary font-bold">Rp {{ number_format($villa->price_per_night, 0, ',', '.') }}</span>
+                                <span class="text-primary font-bold">{{ $villa->formatted_price }}</span>
                                 <span class="text-gray-500 text-sm">/ malam</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">

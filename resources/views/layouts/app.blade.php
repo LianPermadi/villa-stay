@@ -72,6 +72,7 @@
     @yield("styles")
 </head>
 <body class="bg-light text-dark">
+    @php($siteSettings = \App\Models\HomeSetting::current())
     <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -80,24 +81,26 @@
                         <path d="M16 2L4 12V28H10V20H22V28H28V12L16 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M10 20V28H22V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span class="font-display text-xl font-bold text-primary">Villa-Sina</span>
+                    <span class="font-display text-xl font-bold text-primary">{{ $siteSettings->text('site_name') }}</span>
                 </a>
                 <div class="hidden md:flex items-center gap-8">
-                    <a href="{{ route("home") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Beranda</a>
-                    <a href="{{ route("villas.index") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Villa</a>
+                    <a href="{{ route("home") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_home') }}</a>
+                    <a href="{{ route("villas.index") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_villas') }}</a>
                     @auth
-                        <a href="{{ route("bookings.index") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Pesanan Saya</a>
+                        <a href="{{ route("bookings.index") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_bookings') }}</a>
                         @if (Auth::user()->role === "admin")
-                            <a href="{{ route("admin.dashboard") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Admin</a>
+                            <a href="{{ route("admin.dashboard") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_admin') }}</a>
+                            <a href="{{ route("admin.reports") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_reports') }}</a>
+                            <a href="{{ route('admin.settings.home') }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_settings') }}</a>
                         @endif
-                        <a href="{{ route("profile") }}" class="nav-link text-gray-600 hover:text-primary font-medium">Profil</a>
+                        <a href="{{ route("profile") }}" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_profile') }}</a>
                         <form action="{{ route("logout") }}" method="POST" class="inline">
                             @csrf
-                            <button type="submit" class="nav-link text-gray-600 hover:text-primary font-medium">Keluar</button>
+                            <button type="submit" class="nav-link text-gray-600 hover:text-primary font-medium">{{ $siteSettings->text('nav_logout') }}</button>
                         </form>
                     @else
-                        <a href="{{ route("login") }}" class="btn-primary text-sm">Masuk</a>
-                        <a href="{{ route("register") }}" class="btn-secondary text-sm">Daftar</a>
+                        <a href="{{ route("login") }}" class="btn-primary text-sm">{{ $siteSettings->text('nav_login') }}</a>
+                        <a href="{{ route("register") }}" class="btn-secondary text-sm">{{ $siteSettings->text('nav_register') }}</a>
                     @endauth
                 </div>
             </div>
@@ -114,55 +117,55 @@
                         <svg class="w-8 h-8 text-accent" viewBox="0 0 32 32" fill="none">
                             <path d="M16 2L4 12V28H10V20H22V28H28V12L16 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span class="font-display text-xl font-bold">Villa-Sina</span>
+                        <span class="font-display text-xl font-bold">{{ $siteSettings->text('site_name') }}</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Solusi premium untuk pengalaman menginap villa terbaik di komplek wisata pilihan.</p>
+                    <p class="text-gray-400 text-sm">{{ $siteSettings->text('footer_description') }}</p>
                 </div>
                 <div class="col-span-1">
-                    <h4 class="font-display font-semibold mb-4">Layanan</h4>
+                    <h4 class="font-display font-semibold mb-4">{{ $siteSettings->text('footer_services_title') }}</h4>
                     <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-white transition">Pemesanan Villa</a></li>
-                        <li><a href="#" class="hover:text-white transition">Layanan Kamar</a></li>
-                        <li><a href="#" class="hover:text-white transition">Fasilitas Umum</a></li>
-                        <li><a href="#" class="hover:text-white transition">Area Rekreasi</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_service_1') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_service_2') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_service_3') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_service_4') }}</a></li>
                     </ul>
                 </div>
                 <div class="col-span-1">
-                    <h4 class="font-display font-semibold mb-4">Bantuan</h4>
+                    <h4 class="font-display font-semibold mb-4">{{ $siteSettings->text('footer_help_title') }}</h4>
                     <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-white transition">FAQ</a></li>
-                        <li><a href="#" class="hover:text-white transition">Syarat & Ketentuan</a></li>
-                        <li><a href="#" class="hover:text-white transition">Kebijakan Privasi</a></li>
-                        <li><a href="#" class="hover:text-white transition">Hubungi Kami</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_help_1') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_help_2') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_help_3') }}</a></li>
+                        <li><a href="#" class="hover:text-white transition">{{ $siteSettings->text('footer_help_4') }}</a></li>
                     </ul>
                 </div>
                 <div class="col-span-1">
-                    <h4 class="font-display font-semibold mb-4">Kontak</h4>
+                    <h4 class="font-display font-semibold mb-4">{{ $siteSettings->text('footer_contact_title') }}</h4>
                     <ul class="space-y-2 text-sm text-gray-400">
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
-                            info@villa-sina.com
+                            {{ $siteSettings->text('contact_email') }}
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                             </svg>
-                            +62 812-3456-7890
+                            {{ $siteSettings->text('contact_phone') }}
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
-                            Komplek Vila Paradise
+                            {{ $siteSettings->address ?: 'Dili, Timor-Leste' }}
                         </li>
                     </ul>
                 </div>
             </div>
             <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
-                <p>&copy; 2026 Villa-Sina. Hak Cipta Dilindungi.</p>
+                <p>{{ $siteSettings->text('footer_copyright') }}</p>
             </div>
         </div>
     </footer>

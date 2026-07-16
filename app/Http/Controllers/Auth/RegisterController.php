@@ -12,30 +12,30 @@ class RegisterController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view("auth.register");
+        return view('auth.register');
     }
-    
+
     public function register(Request $request)
     {
         $request->validate([
-            "name" => "required|string|max:255",
-            "email" => "required|email|unique:users",
-            "password" => "required|string|min:8|confirmed",
-            "phone" => "nullable|string",
-            "address" => "nullable|string",
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
         ]);
-        
+
         $user = User::create([
-            "name" => $request->name,
-            "email" => $request->email,
-            "password" => Hash::make($request->password),
-            "phone" => $request->phone,
-            "address" => $request->address,
-            "role" => "user",
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'role' => 'user',
         ]);
-        
+
         Auth::login($user);
-        
-        return redirect()->route("home");
+
+        return redirect()->route('home');
     }
 }

@@ -48,11 +48,23 @@
                     <div class="grid md:grid-cols-2 gap-6">
                         <!-- Harga per Malam -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga per Malam (Rp) <span class="text-red-500">*</span></label>
-                            <input type="number" name="price_per_night" value="{{ old('price_per_night') }}" 
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga per Malam <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.01" name="price_per_night" value="{{ old('price_per_night') }}"
                                 class="w-full px-4 py-3 rounded-lg border @error('price_per_night') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                                placeholder="500000" required>
+                                placeholder="Contoh: 150 atau 500000" required>
                             @error('price_per_night')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mata Uang <span class="text-red-500">*</span></label>
+                            <select name="currency" class="w-full px-4 py-3 rounded-lg border @error('currency') border-red-500 @else border-gray-300 @enderror focus:ring-2 focus:ring-primary focus:border-transparent transition" required>
+                                @foreach(\App\Support\Currency::options() as $code => $label)
+                                    <option value="{{ $code }}" {{ old('currency', 'IDR') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('currency')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -139,7 +151,7 @@
                         <input type="hidden" name="primary_image_index" id="primary_image_index" value="0">
                         
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition cursor-pointer">
-                            <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/jpg" class="hidden" id="image-upload">
+                            <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp" class="hidden" id="image-upload">
                             <label for="image-upload" class="cursor-pointer">
                                 <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>

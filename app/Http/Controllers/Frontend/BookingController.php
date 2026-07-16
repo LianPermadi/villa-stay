@@ -7,9 +7,9 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Villa;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -27,33 +27,33 @@ class BookingController extends Controller
             ])
             ->values();
 
-        return view("frontend.bookings.create", compact("villa", "bookedDateRanges"));
+        return view('frontend.bookings.create', compact('villa', 'bookedDateRanges'));
     }
-    
+
     public function store(Request $request, $villaId)
     {
         $villa = Villa::findOrFail($villaId);
-        
+
         $request->validate([
-            "check_in" => "required|date|after_or_equal:today",
-            "check_out" => "required|date|after:check_in",
-            "num_guests" => "required|integer|min:1|max:" . $villa->capacity,
-            "guest_name" => "required|string|max:255",
-            "guest_email" => "required|email",
-            "guest_phone" => "required|string",
-            "payment_plan" => "required|in:dp,full",
+            'check_in' => 'required|date|after_or_equal:today',
+            'check_out' => 'required|date|after:check_in',
+            'num_guests' => 'required|integer|min:1|max:'.$villa->capacity,
+            'guest_name' => 'required|string|max:255',
+            'guest_email' => 'required|email',
+            'guest_phone' => 'required|string',
+            'payment_plan' => 'required|in:dp,full',
         ]);
-        
+
         $checkIn = Carbon::parse($request->check_in);
         $checkOut = Carbon::parse($request->check_out);
         $numNights = $checkIn->diffInDays($checkOut);
-        
-        if (!$villa->isAvailable($request->check_in, $request->check_out)) {
-            return back()->withErrors(["villa" => "Villa tidak tersedia untuk tanggal tersebut"]);
+
+        if (! $villa->isAvailable($request->check_in, $request->check_out)) {
+            return back()->withErrors(['villa' => 'Villa tidak tersedia untuk tanggal tersebut']);
         }
-        
+
         $totalPrice = $villa->price_per_night * $numNights;
-        
+
         // Calculate payment amounts based on selected plan
         if ($request->payment_plan === 'full') {
             $downPaymentAmount = $totalPrice; // Full amount as DP
@@ -62,39 +62,40 @@ class BookingController extends Controller
             $downPaymentAmount = $villa->calculateDownPaymentAmount($numNights);
             $remainingAmount = $totalPrice - $downPaymentAmount;
         }
-        
+
         // Final payment is open from H-7 until H-1 before check-in.
         $paymentDueDate = $checkIn->copy()->subDay();
-        
+
         $booking = Booking::create([
-            "user_id" => Auth::id(),
-            "villa_id" => $villa->id,
-            "check_in" => $request->check_in,
-            "check_out" => $request->check_out,
-            "num_nights" => $numNights,
-            "num_guests" => $request->num_guests,
-            "total_price" => $totalPrice,
-            "down_payment_amount" => $downPaymentAmount,
-            "remaining_amount" => $remainingAmount,
-            "payment_status" => "none",
-            "payment_due_date" => $paymentDueDate,
-            "guest_name" => $request->guest_name,
-            "guest_email" => $request->guest_email,
-            "guest_phone" => $request->guest_phone,
-            "special_requests" => $request->special_requests,
-            "status" => "pending",
+            'user_id' => Auth::id(),
+            'villa_id' => $villa->id,
+            'check_in' => $request->check_in,
+            'check_out' => $request->check_out,
+            'num_nights' => $numNights,
+            'num_guests' => $request->num_guests,
+            'total_price' => $totalPrice,
+            'currency' => $villa->currency,
+            'down_payment_amount' => $downPaymentAmount,
+            'remaining_amount' => $remainingAmount,
+            'payment_status' => 'none',
+            'payment_due_date' => $paymentDueDate,
+            'guest_name' => $request->guest_name,
+            'guest_email' => $request->guest_email,
+            'guest_phone' => $request->guest_phone,
+            'special_requests' => $request->special_requests,
+            'status' => 'pending',
         ]);
-        
-        $message = "Booking berhasil dibuat! ";
+
+        $message = 'Booking berhasil dibuat! ';
         if ($request->payment_plan === 'full') {
-            $message .= "Harap lakukan pembayaran lunas sebelum batas waktu.";
+            $message .= 'Harap lakukan pembayaran lunas sebelum batas waktu.';
         } else {
-            $message .= "Harap lakukan pembayaran DP sebelum batas waktu.";
+            $message .= 'Harap lakukan pembayaran DP sebelum batas waktu.';
         }
-        
-        return redirect()->route("bookings.show", $booking)->with("success", $message);
+
+        return redirect()->route('bookings.show', $booking)->with('success', $message);
     }
-     
+
     public function index(Request $request)
     {
         $request->validate([
@@ -109,7 +110,7 @@ class BookingController extends Controller
         $cancelledFrom = $request->input('cancelled_from', now()->subMonths(3)->toDateString());
         $cancelledTo = $request->input('cancelled_to', now()->addMonths(3)->toDateString());
 
-        $baseQuery = Booking::where("user_id", Auth::id())
+        $baseQuery = Booking::where('user_id', Auth::id())
             ->with(['villa', 'payments' => function ($q) {
                 $q->latest()->limit(1);
             }]);
@@ -135,9 +136,9 @@ class BookingController extends Controller
             ->latest()
             ->get();
 
-        return view("frontend.bookings.index", compact("approvedBookings", "unapprovedBookings", "cancelledBookings", "approvedFrom", "approvedTo", "cancelledFrom", "cancelledTo"));
+        return view('frontend.bookings.index', compact('approvedBookings', 'unapprovedBookings', 'cancelledBookings', 'approvedFrom', 'approvedTo', 'cancelledFrom', 'cancelledTo'));
     }
-    
+
     public function show(Booking $booking)
     {
         if ($booking->user_id != Auth::id()) {
@@ -150,7 +151,7 @@ class BookingController extends Controller
             ->whereNotNull('bank_account_holder')
             ->first();
 
-        return view("frontend.bookings.show", compact("booking", "adminPaymentAccount"));
+        return view('frontend.bookings.show', compact('booking', 'adminPaymentAccount'));
     }
 
     /**
@@ -193,6 +194,7 @@ class BookingController extends Controller
             ])],
             'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'payment_type' => 'required|in:down_payment,final_payment',
+            'notes' => 'nullable|string|max:1000',
         ];
 
         $rules['transaction_id'] = $isBankTransfer
@@ -215,7 +217,7 @@ class BookingController extends Controller
             ->where('status', 'verified')
             ->exists();
         if ($verifiedPaymentExists) {
-            return back()->withErrors(['payment' => ucfirst(str_replace('_', ' ', $paymentType)) . ' untuk booking ini sudah diverifikasi.']);
+            return back()->withErrors(['payment' => ucfirst(str_replace('_', ' ', $paymentType)).' untuk booking ini sudah diverifikasi.']);
         }
 
         // Additional validations based on payment type
@@ -226,7 +228,7 @@ class BookingController extends Controller
                     ->where('payment_type', 'down_payment')
                     ->where('status', 'verified')
                     ->exists();
-                if (!$dpPaid) {
+                if (! $dpPaid) {
                     return back()->withErrors(['payment' => 'DP belum dibayarkan. Harap lunasi DP terlebih dahulu sebelum melakukan pelunasan.']);
                 }
             }
@@ -238,13 +240,13 @@ class BookingController extends Controller
 
                 if ($now->lt($finalPaymentStartDate)) {
                     return back()->withErrors([
-                        'payment' => 'Pelunasan dapat dilakukan mulai H-7 check-in (' . $finalPaymentStartDate->format('d M Y') . ') sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                        'payment' => 'Pelunasan dapat dilakukan mulai H-7 check-in ('.$finalPaymentStartDate->format('d M Y').') sampai H-1 check-in ('.$finalPaymentEndDate->format('d M Y').').',
                     ]);
                 }
 
                 if ($now->gt($finalPaymentEndDate)) {
                     return back()->withErrors([
-                        'payment' => 'Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai H-1 check-in (' . $finalPaymentEndDate->format('d M Y') . ').'
+                        'payment' => 'Batas pelunasan sudah lewat. Pelunasan hanya dapat dilakukan sampai H-1 check-in ('.$finalPaymentEndDate->format('d M Y').').',
                     ]);
                 }
             }
@@ -265,20 +267,23 @@ class BookingController extends Controller
 
             // Update existing pending payment
             $existingPayment->payment_method = $request->payment_method;
+            $existingPayment->amount = $amount;
             $existingPayment->transaction_id = $isBankTransfer ? $request->transaction_id : null;
             $existingPayment->proof_image = $proofPath;
+            $existingPayment->status = 'pending';
             $existingPayment->notes = $request->notes;
+            $existingPayment->admin_notes = null;
             $existingPayment->save();
         } else {
             // Create new payment record
             $booking->payments()->create([
-                "amount" => $amount,
-                "payment_method" => $request->payment_method,
-                "transaction_id" => $isBankTransfer ? $request->transaction_id : null,
-                "proof_image" => $proofPath,
-                "status" => "pending",
-                "payment_type" => $paymentType,
-                "notes" => $request->notes,
+                'amount' => $amount,
+                'payment_method' => $request->payment_method,
+                'transaction_id' => $isBankTransfer ? $request->transaction_id : null,
+                'proof_image' => $proofPath,
+                'status' => 'pending',
+                'payment_type' => $paymentType,
+                'notes' => $request->notes,
             ]);
         }
 
@@ -293,7 +298,7 @@ class BookingController extends Controller
         }
         $booking->save();
 
-        return back()->with("success", "Bukti pembayaran berhasil diupload! Menunggu verifikasi admin.");
+        return back()->with('success', 'Bukti pembayaran berhasil diupload! Menunggu verifikasi admin.');
     }
 
     /**
@@ -309,9 +314,19 @@ class BookingController extends Controller
             return back()->withErrors(['cancel' => 'Booking tidak dapat dibatalkan']);
         }
 
+        $hasActivePayment = $booking->payments()
+            ->whereIn('status', ['pending', 'verified'])
+            ->exists();
+
+        if ($hasActivePayment) {
+            return back()->withErrors([
+                'cancel' => 'Booking dengan pembayaran yang sedang diproses tidak dapat dibatalkan.',
+            ]);
+        }
+
         $booking->status = 'cancelled';
         $booking->save();
 
-        return back()->with("success", "Booking berhasil dibatalkan");
+        return back()->with('success', 'Booking berhasil dibatalkan');
     }
 }

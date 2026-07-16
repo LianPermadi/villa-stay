@@ -99,7 +99,7 @@
                             Pengembalian Dana Lengkap
                         @endif
                     </p>
-                    <p class="text-sm mt-1">Jumlah: Rp {{ number_format($booking->refund_amount, 0, ',', '.') }}</p>
+                    <p class="text-sm mt-1">Jumlah: {{ $booking->formatMoney($booking->refund_amount) }}</p>
                     <p class="text-sm">Status: <span class="font-semibold">{{ $booking->refund_status === 'completed' ? 'Sudah dibayarkan' : 'Menunggu proses' }}</span></p>
                     @if($booking->refund_status === 'pending')
                     <form action="{{ route('admin.bookings.process_refund', $booking) }}" method="POST" enctype="multipart/form-data" class="mt-4 rounded-xl border border-blue-200 bg-white/70 p-4">
@@ -185,15 +185,15 @@
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="bg-gray-50 p-3 rounded">
                                 <span class="text-gray-600 text-sm">Total</span>
-                                <p class="font-bold text-primary">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
+                                <p class="font-bold text-primary">{{ $booking->formatted_total_price }}</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <span class="text-gray-600 text-sm">DP ({{ $booking->villa->down_payment_percentage }}%)</span>
-                                <p class="font-bold">Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}</p>
+                                <p class="font-bold">{{ $booking->formatMoney($booking->down_payment_amount) }}</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <span class="text-gray-600 text-sm">Sisa</span>
-                                <p class="font-bold">Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}</p>
+                                <p class="font-bold">{{ $booking->formatMoney($booking->remaining_amount) }}</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <span class="text-gray-600 text-sm">Status</span>
@@ -245,7 +245,7 @@
                                     <div class="mb-3 flex items-start justify-between gap-3">
                                         <div>
                                             <h5 class="font-semibold text-gray-900">{{ $slot['label'] }}</h5>
-                                            <p class="text-sm text-primary font-bold">Rp {{ number_format($slot['amount'], 0, ',', '.') }}</p>
+                                            <p class="text-sm text-primary font-bold">{{ $booking->formatMoney($slot['amount']) }}</p>
                                         </div>
                                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">{{ $statusLabel }}</span>
                                     </div>
@@ -308,7 +308,7 @@
                     <h2 class="text-lg font-semibold text-red-800 mb-2">Pembayaran Ditolak</h2>
                     <p class="text-red-700 mb-2">{{ $booking->rejection_reason }}</p>
                     @if($booking->refund_amount)
-                    <p class="font-semibold">Pengembalian dana: Rp {{ number_format($booking->refund_amount, 0, ',', '.') }}</p>
+                    <p class="font-semibold">Pengembalian dana: {{ $booking->formatMoney($booking->refund_amount) }}</p>
                     <p class="text-sm text-red-600">Status: {{ $booking->refund_status === 'completed' ? 'Sudah dibayarkan' : 'Menunggu proses' }}</p>
                     @php
                         $refundPayment = $booking->payments->where('payment_type', 'refund')->sortByDesc('created_at')->first();
@@ -460,7 +460,7 @@
             <div id="partialRefundAmountField" class="mb-4 hidden">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Nominal Pengembalian Parsial</label>
                 <input type="number" name="refund_amount" min="0" max="{{ $pendingCustomerPayment?->amount ?? 0 }}" step="1000" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Masukkan nominal refund">
-                <p class="mt-1 text-xs text-gray-500">Maksimal Rp {{ number_format($pendingCustomerPayment?->amount ?? 0, 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-gray-500">Maksimal {{ $booking->formatMoney($pendingCustomerPayment?->amount ?? 0) }}</p>
             </div>
             <div class="flex gap-3 justify-end">
                 <button type="button" onclick="hideRejectModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Batal</button>

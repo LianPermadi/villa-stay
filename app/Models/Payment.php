@@ -40,4 +40,9 @@ class Payment extends Model
     {
         return $this->proof_image_exists ? route('payment-proofs.show', $this) : null;
     }
+
+    public function getFormattedAmountAttribute(): string
+    {
+        return $this->booking?->formatMoney(abs((float) $this->amount)) ?? (string) $this->amount;
+    }
 }

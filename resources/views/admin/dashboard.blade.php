@@ -120,7 +120,7 @@
                     <div class="p-4">
                         <h3 class="font-semibold text-gray-900 mb-1 text-sm">{{ $villa->name }}</h3>
                         <div class="flex items-center justify-between text-sm">
-                            <span class="text-primary font-bold">Rp {{ number_format($villa->price_per_night, 0, ',', '.') }}</span>
+                            <span class="text-primary font-bold">{{ $villa->formatted_price }}</span>
                             <span class="text-gray-500 text-xs">/ malam</span>
                         </div>
                         <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
@@ -162,7 +162,7 @@
                             <td class="py-3">{{ $booking->villa->name }}</td>
                             <td class="py-3">{{ $booking->guest_name }}</td>
                             <td class="py-3">{{ \Carbon\Carbon::parse($booking->check_in)->format("d M Y") }}</td>
-                            <td class="py-3 font-semibold">Rp {{ number_format($booking->total_price, 0, ",", ".") }}</td>
+                            <td class="py-3 font-semibold">{{ $booking->formatted_total_price }}</td>
                             <td class="py-3">
                                 <span class="badge badge-{{ $booking->status }}">{{ ucfirst($booking->status) }}</span>
                             </td>
@@ -186,14 +186,14 @@
                     <p class="text-gray-600 mt-1">Filter data pendapatan dan Analisis Pengelompokan (Clustering) berdasarkan periode atau villa.</p>
                 </div>
 
-                @if(request()->hasAny(['month', 'year', 'date_from', 'date_to', 'villa_id']))
+                @if(request()->hasAny(['month', 'year', 'date_from', 'date_to', 'villa_id', 'currency']))
                 <a href="{{ route('admin.dashboard') }}" class="btn-secondary text-sm text-center">
                     Reset Filter
                 </a>
                 @endif
             </div>
 
-            <form id="analytics-filter-form" action="{{ route('admin.dashboard') }}" method="GET" class="grid md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+            <form id="analytics-filter-form" action="{{ route('admin.dashboard') }}" method="GET" class="grid md:grid-cols-2 xl:grid-cols-6 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Bulan</label>
                     <select name="month" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
@@ -248,12 +248,21 @@
                         @endforeach
                     </select>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mata Uang</label>
+                    <select name="currency" class="analytics-input w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                        @foreach(\App\Support\Currency::options() as $code => $label)
+                        <option value="{{ $code }}" {{ $filters['currency'] === $code ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </form>
 
             <div class="grid md:grid-cols-3 gap-4 mb-6">
                 <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
                     <p class="text-sm font-semibold text-gray-500">Total Pendapatan Filter</p>
-                    <p class="mt-2 text-3xl font-bold text-primary">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
+                    <p class="mt-2 text-3xl font-bold text-primary">{{ \App\Support\Currency::format($totalRevenue, $reportCurrency) }}</p>
                 </div>
                 <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
                     <p class="text-sm font-semibold text-gray-500">Transaksi Terfilter</p>
@@ -261,7 +270,7 @@
                 </div>
                 <div class="rounded-2xl bg-white p-5 shadow-sm border border-primary/10">
                     <p class="text-sm font-semibold text-gray-500">Rata-rata Transaksi</p>
-                    <p class="mt-2 text-3xl font-bold text-primary">Rp {{ number_format($averageRevenue, 0, ',', '.') }}</p>
+                    <p class="mt-2 text-3xl font-bold text-primary">{{ \App\Support\Currency::format($averageRevenue, $reportCurrency) }}</p>
                 </div>
             </div>
 
@@ -304,7 +313,7 @@
                             @forelse($kmeansResult['summary'][$clusterLabel] ?? [] as $item)
                             <li class="flex justify-between items-center bg-white p-2 rounded border">
                                 <span class="font-semibold">{{ $item['name'] }}</span>
-                                <span class="text-gray-500">Rp {{ number_format($item['revenue'], 0, ',', '.') }} ({{ $item['bookings'] }}x)</span>
+                                <span class="text-gray-500">{{ \App\Support\Currency::format($item['revenue'], $reportCurrency) }} ({{ $item['bookings'] }}x)</span>
                             </li>
                             @empty
                             <li class="text-gray-500 italic text-center py-2">Tidak ada villa di cluster ini</li>
@@ -345,8 +354,15 @@
             });
         });
 
-        const formatRupiah = function(value) {
-            return "Rp " + Number(value || 0).toLocaleString("id-ID");
+        const reportCurrency = @json($reportCurrency);
+        const currencyDecimals = @json(\App\Support\Currency::decimals($reportCurrency));
+        const formatMoney = function(value) {
+            return new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: reportCurrency,
+                minimumFractionDigits: currencyDecimals,
+                maximumFractionDigits: currencyDecimals
+            }).format(Number(value || 0));
         };
 
         const ctx = document.getElementById("revenueChart").getContext("2d");
@@ -360,7 +376,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: "Pendapatan (Rp)",
+                    label: "Pendapatan (" + reportCurrency + ")",
                     data: data,
                     backgroundColor: "rgba(45, 90, 39, 0.78)",
                     borderColor: "rgba(45, 90, 39, 1)",
@@ -385,7 +401,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return "Pendapatan: " + formatRupiah(context.parsed.y);
+                                return "Pendapatan: " + formatMoney(context.parsed.y);
                             }
                         }
                     }
@@ -400,7 +416,7 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return formatRupiah(value);
+                                return formatMoney(value);
                             }
                         }
                     }
@@ -448,7 +464,7 @@
                         callbacks: {
                             label: function(context) {
                                 const pt = context.raw;
-                                return pt.name + ": " + formatRupiah(pt.y) + " (" + pt.x + " Booking)";
+                                return pt.name + ": " + formatMoney(pt.y) + " (" + pt.x + " Booking)";
                             }
                         }
                     }
@@ -460,10 +476,10 @@
                         ticks: { stepSize: 1 }
                     },
                     y: {
-                        title: { display: true, text: 'Total Pendapatan (Rp)' },
+                        title: { display: true, text: 'Total Pendapatan (' + reportCurrency + ')' },
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) { return formatRupiah(value); }
+                            callback: function(value) { return formatMoney(value); }
                         }
                     }
                 }

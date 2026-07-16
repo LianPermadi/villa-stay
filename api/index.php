@@ -12,6 +12,7 @@ if (! file_exists($autoload)) {
     http_response_code(500);
     header('Content-Type: text/plain');
     echo 'Laravel vendor/autoload.php not found. Composer dependencies were not installed during deployment.';
+
     return;
 }
 

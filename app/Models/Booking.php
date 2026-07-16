@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\Currency;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Booking extends Model
 {
@@ -18,6 +19,7 @@ class Booking extends Model
         'num_nights',
         'num_guests',
         'total_price',
+        'currency',
         'down_payment_amount',
         'remaining_amount',
         'payment_status',
@@ -84,6 +86,16 @@ class Booking extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class)->latest();
+    }
+
+    public function formatMoney(int|float|string|null $amount): string
+    {
+        return Currency::format($amount, $this->currency);
+    }
+
+    public function getFormattedTotalPriceAttribute(): string
+    {
+        return $this->formatMoney($this->total_price);
     }
 
     /**

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Payment;
-use App\Models\Villa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,13 +47,14 @@ class BookingController extends Controller
             ->latest()
             ->get();
 
-        return view("admin.bookings.index", compact("approvedBookings", "unapprovedBookings", "cancelledBookings", "approvedFrom", "approvedTo", "cancelledFrom", "cancelledTo"));
+        return view('admin.bookings.index', compact('approvedBookings', 'unapprovedBookings', 'cancelledBookings', 'approvedFrom', 'approvedTo', 'cancelledFrom', 'cancelledTo'));
     }
-    
+
     public function show(Booking $booking)
     {
         $booking->load(['villa', 'user', 'payments']);
-        return view("admin.bookings.show", compact("booking"));
+
+        return view('admin.bookings.show', compact('booking'));
     }
 
     /**
@@ -86,7 +86,7 @@ class BookingController extends Controller
                 ->where('payment_type', 'down_payment')
                 ->where('status', 'verified')
                 ->exists();
-            if (!$dpPaid) {
+            if (! $dpPaid) {
                 return back()->withErrors(['payment' => 'DP belum dibayarkan. Tidak dapat verifikasi pelunasan sebelum DP.']);
             }
         }
@@ -109,7 +109,7 @@ class BookingController extends Controller
         }
         $booking->save();
 
-        return redirect()->route("admin.bookings.show", $booking)->with("success", "Pembayaran berhasil diverifikasi!");
+        return redirect()->route('admin.bookings.show', $booking)->with('success', 'Pembayaran berhasil diverifikasi!');
     }
 
     /**
@@ -165,10 +165,10 @@ class BookingController extends Controller
             $booking->payments()->create([
                 'amount' => -$refundAmount,
                 'payment_method' => 'refund',
-                'transaction_id' => 'REFUND-' . $booking->id . '-' . time(),
+                'transaction_id' => 'REFUND-'.$booking->id.'-'.time(),
                 'status' => 'pending',
                 'payment_type' => 'refund',
-                'notes' => "Pengembalian dana karena pembayaran ditolak. " . $request->rejection_reason,
+                'notes' => 'Pengembalian dana karena pembayaran ditolak. '.$request->rejection_reason,
             ]);
         } else {
             $booking->reject_status = 'rejected';
@@ -177,7 +177,7 @@ class BookingController extends Controller
             $booking->save();
         }
 
-        return redirect()->route("admin.bookings.show", $booking)->with("success", "Pembayaran ditolak. " . ($refundAmount > 0 ? "Pengembalian dana akan diproses." : ""));
+        return redirect()->route('admin.bookings.show', $booking)->with('success', 'Pembayaran ditolak. '.($refundAmount > 0 ? 'Pengembalian dana akan diproses.' : ''));
     }
 
     /**
@@ -186,7 +186,7 @@ class BookingController extends Controller
     public function processRefund(Request $request, Booking $booking)
     {
         $request->validate([
-            'refund_amount' => 'required|numeric|min:0',
+            'refund_amount' => 'required|numeric|gt:0',
             'admin_notes' => 'nullable|string|max:1000',
             'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
@@ -195,7 +195,11 @@ class BookingController extends Controller
             return back()->withErrors(['refund' => 'Tidak ada refund yang sedang diproses']);
         }
 
-        $proofPath = $request->file('proof_image')->storePublicly('refund-proofs', 'public');
+        if ((float) $request->refund_amount !== (float) $booking->refund_amount) {
+            return back()->withErrors([
+                'refund_amount' => 'Nominal refund harus sesuai dengan nominal yang telah disetujui.',
+            ]);
+        }
 
         // Update refund payment to completed
         $refundPayment = $booking->payments()
@@ -203,17 +207,21 @@ class BookingController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if ($refundPayment) {
-            if ($refundPayment->proof_image) {
-                Storage::disk('public')->delete($refundPayment->proof_image);
-            }
-
-            $refundPayment->amount = -abs($request->refund_amount);
-            $refundPayment->status = 'verified';
-            $refundPayment->proof_image = $proofPath;
-            $refundPayment->admin_notes = $request->admin_notes;
-            $refundPayment->save();
+        if (! $refundPayment) {
+            return back()->withErrors(['refund' => 'Data transaksi refund tidak ditemukan.']);
         }
+
+        $proofPath = $request->file('proof_image')->storePublicly('refund-proofs', 'public');
+
+        if ($refundPayment->proof_image) {
+            Storage::disk('public')->delete($refundPayment->proof_image);
+        }
+
+        $refundPayment->amount = -abs($request->refund_amount);
+        $refundPayment->status = 'verified';
+        $refundPayment->proof_image = $proofPath;
+        $refundPayment->admin_notes = $request->admin_notes;
+        $refundPayment->save();
 
         $booking->refund_status = 'completed';
         $booking->refund_date = now();
@@ -221,7 +229,7 @@ class BookingController extends Controller
         $booking->status = 'completed';
         $booking->save();
 
-        return redirect()->route("admin.bookings.show", $booking)->with("success", "Pengembalian dana berhasil diproses!");
+        return redirect()->route('admin.bookings.show', $booking)->with('success', 'Pengembalian dana berhasil diproses!');
     }
 
     /**
@@ -236,6 +244,6 @@ class BookingController extends Controller
         $booking->status = $request->status;
         $booking->save();
 
-        return back()->with("success", "Status booking berhasil diperbarui!");
+        return back()->with('success', 'Status booking berhasil diperbarui!');
     }
 }

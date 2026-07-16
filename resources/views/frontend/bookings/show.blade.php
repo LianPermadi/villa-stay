@@ -155,18 +155,18 @@
                     <div class="grid md:grid-cols-2 gap-4 mb-6">
                         <div class="bg-gray-50 rounded-lg p-4">
                             <span class="text-gray-600 text-sm">Total Pembayaran</span>
-                            <p class="text-xl font-bold text-primary">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
+                            <p class="text-xl font-bold text-primary">{{ $booking->formatted_total_price }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-4">
                             <span class="text-gray-600 text-sm">DP ({{ $booking->villa->down_payment_percentage ?? 30 }}%)</span>
                             <p class="text-xl font-semibold {{ $booking->payment_status !== 'none' ? 'text-green-600' : '' }}">
-                                Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}
+                                {{ $booking->formatMoney($booking->down_payment_amount) }}
                             </p>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-4">
                             <span class="text-gray-600 text-sm">Sisa Pembayaran</span>
                             <p class="text-xl font-semibold {{ $booking->payment_status === 'fully_paid' ? 'text-green-600' : '' }}">
-                                Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}
+                                {{ $booking->formatMoney($booking->remaining_amount) }}
                             </p>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-4">
@@ -297,7 +297,7 @@
                                                 @if($needDP)
                                                 <label class="flex items-center gap-2">
                                                     <input type="radio" name="payment_type" value="down_payment" checked class="w-4 h-4 text-primary focus:ring-primary">
-                                                    <span>Down Payment (DP) - Rp {{ number_format($booking->down_payment_amount, 0, ',', '.') }}</span>
+                                                    <span>Down Payment (DP) - {{ $booking->formatMoney($booking->down_payment_amount) }}</span>
                                                 </label>
                                                 @endif
                                                 @if($needFinal)
@@ -305,9 +305,9 @@
                                                     <input type="radio" name="payment_type" value="final_payment" {{ ( !$needDP && $needFinal ) ? 'checked' : '' }} class="w-4 h-4 text-primary focus:ring-primary">
                                                     <span>
                                                         @if($isFullPaymentBooking)
-                                                            Pelunasan Lengkap (100%) - Rp {{ number_format($booking->total_price, 0, ',', '.') }}
+                                                            Pelunasan Lengkap (100%) - {{ $booking->formatted_total_price }}
                                                         @else
-                                                            Pelunasan (H-7 s/d H-1) - Rp {{ number_format($booking->remaining_amount, 0, ',', '.') }}
+                                                            Pelunasan (H-7 s/d H-1) - {{ $booking->formatMoney($booking->remaining_amount) }}
                                                         @endif
                                                     </span>
                                                 </label>
@@ -385,7 +385,7 @@
                                     <p class="text-sm mt-1">{{ $booking->rejection_reason }}</p>
                                     @if($booking->refund_amount)
                                     <p class="text-sm font-semibold mt-2">
-                                        Jumlah pengembalian: Rp {{ number_format($booking->refund_amount, 0, ',', '.') }}
+                                        Jumlah pengembalian: {{ $booking->formatMoney($booking->refund_amount) }}
                                         @if($booking->refund_status === 'completed')
                                             <span class="text-green-600">(Sudah dibayarkan)</span>
                                         @else
@@ -452,7 +452,7 @@
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <span class="font-medium">{{ ucfirst(str_replace('_', ' ', $payment->payment_type)) }}</span>
-                                    <p class="text-sm text-gray-600">Rp {{ number_format(abs($payment->amount), 0, ',', '.') }}</p>
+                                    <p class="text-sm text-gray-600">{{ $payment->formatted_amount }}</p>
                                 </div>
                                 <span class="px-2 py-1 rounded-full text-xs font-medium
                                     {{ $payment->status === 'verified' ? 'bg-green-100 text-green-800' : ($payment->status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
